@@ -30,7 +30,9 @@ def load_data(remove_indices: Iterable = (2, 4, 11, 17, 19, 27, 29, 45, 25)) -> 
     +++ DATA TRANSFORMATIONS +++
 '''
 
-# TODO: Add non-transform function here
+
+def no_transform(x):
+    return x
 
 
 def log_transform(x: np.ndarray or list) -> np.ndarray or list:

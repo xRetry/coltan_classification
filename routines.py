@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 
 import evaluation
+import plotting
 from mines import Mine
 from models import Model
 from samples import TestSamples
@@ -38,6 +39,36 @@ def cross_validate(data: pd.DataFrame, mine_class: Mine.__class__, n_fold: int, 
         labels = model.classify(samples_test)
         loss[i] = loss_func(samples_test, labels)
     return loss.mean()
+
+
+def show_training(data: pd.DataFrame, Mine_Class: Mine.__class__, n_samples: int, mine_kwargs: Optional[dict]=None):
+    if mine_kwargs is None:
+        mine_kwargs = {}
+    sample_ids = pd.unique(data['smp'])
+
+    mine: Mine = Mine_Class(
+        x=0,
+        y=0,
+        z=0,
+        status=0,
+        **mine_kwargs
+    )
+
+    samples = []
+    for i in range(n_samples):
+        samples.append(data[data['smp'] == sample_ids[i]].filter(regex='Att*').values)
+
+    stacked = np.row_stack(samples)
+    min_value = np.min(stacked, axis=0)
+    max_value = np.max(stacked, axis=0)
+    delta = max_value - min_value
+    x = np.linspace(min_value - 0.1*delta, max_value + 0.1*delta, 500)
+    y = [mine.pdf(x)]
+    for i in range(n_samples):
+        mine.add_sample(samples[i])
+        y.append(mine.pdf(x))
+
+    plotting.plot_training(x, y, samples, attr_idx=0)
 
 
 if __name__ == '__main__':

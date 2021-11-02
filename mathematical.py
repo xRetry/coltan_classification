@@ -35,7 +35,7 @@ def norm_posterior_skwn(mu_prior, sigma_prior, sigma_known, x):
     For simplification sigma can be assumed to be equal to the sample sigma.
     """
     n_new = len(x)
-    mu = (mu_prior/np.power(sigma_prior, 2) + np.sum(x)/np.power(sigma_known, 2)) / (1/np.power(sigma_prior, 2) + n_new/np.power(sigma_known, 2))
+    mu = (mu_prior/np.power(sigma_prior, 2) + np.sum(x, axis=0)/np.power(sigma_known, 2)) / (1/np.power(sigma_prior, 2) + n_new/np.power(sigma_known, 2))
     sigma = np.power(1/np.power(sigma_prior, 2) + n_new/np.power(sigma_known, 2), -1/2)
     return mu, sigma
 

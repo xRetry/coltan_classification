@@ -34,7 +34,7 @@ class Model:
                     status=sample_data['FP'].iloc[0],
                     **mine_kwargs
                 )
-            mines[mine_id].add_sample(sample_data.filter(regex='Att*'))
+            mines[mine_id].add_sample(sample_data.filter(regex='Att*').values)
         self._mines = list(mines.values())
 
     def classify(self, samples: Samples) -> np.ndarray:
@@ -42,7 +42,7 @@ class Model:
         for i, mine in enumerate(self._mines):
             eval_results[i] = mine.eval_samples(samples)
 
-        return self._eval_func(eval_results, self._mines)  # TODO: enable external evaluation control
+        return self._eval_func(eval_results, self._mines)
         # return evaluation.best_label(eval_results, self._mines)
 
     def __getitem__(self, item) -> Mine:

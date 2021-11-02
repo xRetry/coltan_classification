@@ -1,5 +1,7 @@
 import numpy as np
 import abc
+
+import data
 import mathematical
 from samples import Samples
 from typing import List, Optional, Callable
@@ -18,7 +20,7 @@ class Mine(abc.ABC):
     _status: int
     _transform: Callable
 
-    def __init__(self, x: float, y: float, z: float, status: int, samples: Optional[List[np.ndarray]] = None, transform: Callable=lambda x: x):
+    def __init__(self, x: float, y: float, z: float, status: int, samples: Optional[List[np.ndarray]] = None, transform: Callable=data.no_transform):
         self._x = x
         self._y = y
         self._z = z
@@ -126,12 +128,16 @@ class BayesianSimpleMine(Mine):
 
     def __init__(self, x: float, y: float, z: float, status: int, mu_prior: np.ndarray, sigma_prior: np.ndarray,
                  samples: Optional[List[np.ndarray]] = None, transform: Callable = lambda x: x):
-        self._mu = mu_prior
-        self._sigma = sigma_prior
+        self._mu = np.ones(37) * mu_prior  # TODO: remove hardcoded prior-dim
+        self._sigma = np.ones(37) * sigma_prior
         super(BayesianSimpleMine, self).__init__(x, y, z, status, samples, transform)
 
     def add_sample(self, values) -> None:
+        if len(values[0]) != len(self._mu):
+            raise ValueError(f'Attribute dims do not agree with prior dims: {len(self._mu)} vs {len(values[0])}')
+
         values = self._transform(values)
+        #mu_post, sigma_post = mathematical.norm_posterior_skwn(self.mean, self.std, np.std(values, axis=0), values)
         mu_post, sigma_post = mathematical.norm_posterior_skwn(self.mean, self.std, 1, values)
         self._mu = mu_post
         self._sigma = sigma_post
