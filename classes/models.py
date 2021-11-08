@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
 from functions import evaluation
-from samples import Samples
-from mines import Mine
+from classes.samples import Samples
+from classes.mines import Mine
 from typing import List, Optional, Callable
 
 

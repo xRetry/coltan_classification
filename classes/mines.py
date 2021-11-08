@@ -2,7 +2,7 @@ import numpy as np
 import abc
 
 from functions import mathematical, data
-from samples import Samples
+from classes.samples import Samples
 from typing import List, Optional, Callable
 import scipy.stats
 
