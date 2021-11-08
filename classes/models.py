@@ -43,7 +43,6 @@ class Model:
             eval_results[:, i] = mine.eval_samples(samples)
 
         return self._eval_func(eval_results, self._mines)
-        # return evaluation.best_label(eval_results, self._mines)
 
     def __getitem__(self, item) -> Mine:
         return self._mines[item]

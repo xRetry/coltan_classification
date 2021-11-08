@@ -1,4 +1,5 @@
 import numpy as np
+import pylab as p
 
 '''
     +++ LOSS FUNCTIONS +++
@@ -24,18 +25,29 @@ def best_mine(eval_results, mines):
     eval_results = np.array(eval_results)
 
     if len(eval_results.shape) == 1:
-        eval_results = eval_results[:, None]
+        eval_results = eval_results.reshape((1, -1))
 
-    idx = np.nanargmax(eval_results, axis=0)
-    return np.array([mines[i].status for i in idx])
+    selection = np.ones(len(eval_results)) * np.nan
+    is_all_nan = np.all(np.isnan(eval_results),axis=1)
+    idx = np.nanargmax(eval_results[np.invert(is_all_nan), :], axis=1)
+    selection[np.invert(is_all_nan)] = np.array([mines[i].status for i in idx])
+    return selection
 
 
 def best_label(eval_results, mines):
+    eval_results = np.array(eval_results)
+
+    if len(eval_results.shape) == 1:
+        eval_results = eval_results.reshape((1, -1))
+
     labels = np.array([m.status for m in mines])
-    sum_full = np.sum(eval_results, axis=0)
-    sum_pos = np.sum(eval_results[labels == 1], axis=0)
-    p_pos = np.divide(sum_pos, sum_full, out=np.zeros_like(sum_pos), where=sum_full != 0)
-    return -np.ones(len(p_pos), dtype=int) + 2 * (p_pos > 0.5).astype(int)
+    sum_full = np.nansum(eval_results, axis=1)
+    sum_pos = np.nansum(eval_results[:, labels == 1], axis=1)
+    p_pos = np.divide(sum_pos, sum_full, out=np.ones_like(sum_pos)*np.nan, where=sum_full != 0)
+    selection = np.ones_like(p_pos)*np.nan
+    is_valid = np.invert(np.isnan(p_pos))
+    selection[is_valid] = -np.ones(len(p_pos[is_valid]), dtype=int) + 2 * (p_pos[is_valid] > 0.5).astype(int)
+    return selection
 
 
 if __name__ == '__main__':

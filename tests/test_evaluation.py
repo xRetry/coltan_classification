@@ -33,7 +33,36 @@ class LabelSelectionTestCase(unittest.TestCase):
             [1, 2, 3],
         ]
         label_selection = evaluation.best_mine(eval_results, mines)
+        self.assertTrue(np.all(label_selection == [1, 2]))
+
+        eval_results = [
+            [np.nan, np.nan, np.nan],
+            [1, 2, 3],
+        ]
+        label_selection = evaluation.best_mine(eval_results, mines)
+        self.assertTrue(np.isnan(label_selection[0]) and label_selection[1] == 2)
+
+    def test_best_label(self):
+        mines = [BaselineMine(0, 0, 0, lbl) for lbl in [-1, -1, 1, 1]]
+        eval_result = [0.35, 0.05, 0.3, 0.3]
+        label_selection = evaluation.best_label(eval_result, mines)
         self.assertEqual(label_selection[0], 1)
+
+        eval_result = [
+            [0.35, 0.05, 0.3, 0.3],
+            [0.35, 0.05, np.nan, 0.3]
+        ]
+
+        label_selection = evaluation.best_label(eval_result, mines)
+        self.assertTrue(np.all(label_selection == [1, -1]))
+
+        eval_result = [
+            [0.35, 0.05, 0.3, 0.3],
+            [np.nan, np.nan, np.nan, np.nan]
+        ]
+
+        label_selection = evaluation.best_label(eval_result, mines)
+        self.assertTrue(np.isnan(label_selection[1]))
 
 
 if __name__ == '__main__':

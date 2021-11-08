@@ -1,15 +1,17 @@
 import pandas as pd
 import numpy as np
 
-import evaluation
-import plotting
+from functions import evaluation
+from functions import plotting
 from classes.mines import Mine
 from classes.models import Model
 from classes.samples import TestSamples
 from typing import Callable, Optional
 
 
-def cross_validate(data: pd.DataFrame, mine_class: Mine.__class__, n_fold: int, loss_func: Callable[[TestSamples, np.ndarray], float]= evaluation.error, model_kwargs: Optional[dict]=None, mine_kwargs: Optional[dict] = None) -> float:
+def cross_validate(data: pd.DataFrame, mine_class: Mine.__class__, n_fold: int,
+                   loss_func: Callable[[TestSamples, np.ndarray], float]=evaluation.error,
+                   model_kwargs: Optional[dict]=None, mine_kwargs: Optional[dict]=None) -> float:
     if model_kwargs is None:
         model_kwargs = {}
     data_shuffled = data.iloc[np.random.permutation(len(data))]
