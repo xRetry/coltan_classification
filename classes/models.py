@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-import evaluation
+from functions import evaluation
 from samples import Samples
 from mines import Mine
 from typing import List, Optional, Callable
@@ -38,9 +38,9 @@ class Model:
         self._mines = list(mines.values())
 
     def classify(self, samples: Samples) -> np.ndarray:
-        eval_results = np.zeros((len(self._mines), len(samples)))
+        eval_results = np.zeros((len(samples), len(self._mines)))
         for i, mine in enumerate(self._mines):
-            eval_results[i] = mine.eval_samples(samples)
+            eval_results[:, i] = mine.eval_samples(samples)
 
         return self._eval_func(eval_results, self._mines)
         # return evaluation.best_label(eval_results, self._mines)

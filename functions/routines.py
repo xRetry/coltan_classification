@@ -3,13 +3,13 @@ import numpy as np
 
 import evaluation
 import plotting
-from mines import Mine
-from models import Model
-from samples import TestSamples
+from classes.mines import Mine
+from classes.models import Model
+from classes.samples import TestSamples
 from typing import Callable, Optional
 
 
-def cross_validate(data: pd.DataFrame, mine_class: Mine.__class__, n_fold: int, loss_func: Callable[[TestSamples, np.ndarray], float]=evaluation.error, model_kwargs: Optional[dict]=None,  mine_kwargs: Optional[dict] = None) -> float:
+def cross_validate(data: pd.DataFrame, mine_class: Mine.__class__, n_fold: int, loss_func: Callable[[TestSamples, np.ndarray], float]= evaluation.error, model_kwargs: Optional[dict]=None, mine_kwargs: Optional[dict] = None) -> float:
     if model_kwargs is None:
         model_kwargs = {}
     data_shuffled = data.iloc[np.random.permutation(len(data))]
@@ -36,8 +36,8 @@ def cross_validate(data: pd.DataFrame, mine_class: Mine.__class__, n_fold: int, 
         model = Model(data_model, mine_class, mine_kwargs=mine_kwargs, **model_kwargs)
         samples_test = TestSamples(data_test)
         # Evaluate test samples
-        labels = model.classify(samples_test)
-        loss[i] = loss_func(samples_test, labels)
+        predictions = model.classify(samples_test)
+        loss[i] = loss_func(samples_test.labels, predictions)
     return loss.mean()
 
 

@@ -1,19 +1,17 @@
 import numpy as np
-from samples import TestSamples
-
 
 '''
     +++ LOSS FUNCTIONS +++
 '''
 
 
-def accuracy(samples: TestSamples, labels: np.ndarray) -> float:
-    n_correct = (samples.labels == labels).sum()
-    return n_correct / len(labels)
+def accuracy(labels: np.ndarray, predictions: np.ndarray) -> float:
+    n_correct = (labels == predictions).sum()
+    return n_correct / len(predictions)
 
 
-def error(samples: TestSamples, labels: np.ndarray) -> float:
-    acc = accuracy(samples, labels)
+def error(labels: np.ndarray, predictions: np.ndarray) -> float:
+    acc = accuracy(labels, predictions)
     return 1-acc
 
 
@@ -23,7 +21,12 @@ def error(samples: TestSamples, labels: np.ndarray) -> float:
 
 
 def best_mine(eval_results, mines):
-    idx = np.argmax(eval_results, axis=0)
+    eval_results = np.array(eval_results)
+
+    if len(eval_results.shape) == 1:
+        eval_results = eval_results[:, None]
+
+    idx = np.nanargmax(eval_results, axis=0)
     return np.array([mines[i].status for i in idx])
 
 
