@@ -1,10 +1,9 @@
 import numpy as np
 import abc
 
-from functions import mathematical, data
+from functions import mathematical, data, evaluation
 from classes.samples import Samples
 from typing import List, Optional, Callable
-import scipy.stats
 
 
 '''
@@ -76,9 +75,7 @@ class OrigMine(Mine):
         return mathematical.normal_uni_pdf(self.mean, self.std, x)
 
     def _eval_sample(self, sample: np.ndarray):
-        sample_means = sample.mean(axis=0)
-        attr_probabilities = mathematical.normal_uni_pdf(self.mean, self.std, sample_means)
-        return np.product(attr_probabilities)
+        return evaluation.eval_pdf(mathematical.normal_uni_pdf, sample.mean(axis=0), self.mean, self.std)
 
     @property
     def mean(self) -> np.ndarray:
@@ -109,8 +106,7 @@ class BaselineMine(Mine):
         return mathematical.normal_uni_pdf(self.mean, self.std, x)
 
     def _eval_sample(self, sample: np.ndarray) -> np.ndarray:
-        attr_probabilities = scipy.stats.ttest_1samp(sample, self.mean)[1]
-        return np.product(attr_probabilities)
+        return evaluation.eval_ttest(sample, self.mean)
 
     @property
     def mean(self):
@@ -136,7 +132,7 @@ class BayesianSimpleMine(Mine):
             raise ValueError(f'Attribute dims do not agree with prior dims: {len(self._mu)} vs {len(values[0])}')
 
         values = self._transform(values)
-        #mu_post, sigma_post = mathematical.norm_posterior_skwn(self.mean, self.std, np.std(values, axis=0), values)
+        # mu_post, sigma_post = mathematical.normal_uni_posterior_sigmaknown(self.mean, self.std, np.std(values, axis=0), values)
         mu_post, sigma_post = mathematical.normal_uni_posterior_sigmaknown(self.mean, self.std, 1, values)
         self._mu = mu_post
         self._sigma = sigma_post
@@ -145,8 +141,8 @@ class BayesianSimpleMine(Mine):
         return mathematical.normal_uni_pdf(self.mean, self.std, x)
 
     def _eval_sample(self, sample: np.ndarray) -> np.ndarray:
-        attr_probabilities = scipy.stats.ttest_1samp(sample, self.mean)[1]
-        return np.product(attr_probabilities)
+        return evaluation.eval_ttest(sample, self.mean)
+        # return evaluation.eval_pdf(mathematical.normal_uni_pdf, sample.mean(axis=0), self.mean, self.std)
 
     @property
     def mean(self) -> np.ndarray:

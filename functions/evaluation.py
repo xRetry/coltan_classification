@@ -1,5 +1,17 @@
 import numpy as np
-import pylab as p
+from typing import Callable
+import scipy.stats
+
+
+def eval_pdf(pdf_func: Callable, sample_means, *args):
+    attr_probabilities = pdf_func(*args, sample_means)
+    return np.product(attr_probabilities)
+
+
+def eval_ttest(sample, *args):
+    attr_probabilities = scipy.stats.ttest_1samp(sample, *args)[1]
+    return np.product(attr_probabilities)
+
 
 '''
     +++ LOSS FUNCTIONS +++

@@ -1,5 +1,6 @@
 import unittest
 from classes.mines import *
+import scipy.stats
 
 
 class BaselineMineTestCase(unittest.TestCase):
