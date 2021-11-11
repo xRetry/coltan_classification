@@ -24,7 +24,7 @@ class BaselineMineTestCase(unittest.TestCase):
             status=1,
             samples=[sample1]
         )
-        self.assertTrue(np.all(mine.mean == sample1.mean(axis=0)))
+        self.assertTrue(np.all(mine._distribution._mean == sample1.mean(axis=0)))
         self.assertTrue(np.all(np.round(mine.std, 5) == np.round(sample1.std(axis=0), 5)))
 
         mine.add_sample(sample2)

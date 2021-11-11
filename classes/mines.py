@@ -1,8 +1,10 @@
 import numpy as np
 import abc
 
-from functions import mathematical, data, evaluation
+from functions.mathematical import normal_uni_mu, normal_uni_sigma_orig, normal_uni_sigma
 from classes.samples import Samples
+from classes.distributions import Distribution, MultiNormal
+from classes.parameters import Parameters
 from typing import List, Optional, Callable
 
 
@@ -16,34 +18,36 @@ class Mine(abc.ABC):
     _y: float
     _z: float
     _status: int
-    _transform: Callable
+    _func_transform: Callable
+    _func_eval: Callable
+    _distribution: Distribution
 
-    def __init__(self, x: float, y: float, z: float, status: int, samples: Optional[List[np.ndarray]] = None, transform: Callable= data.transform_none):
+    def __init__(self, x: float, y: float, z: float, status: int, parameters: Parameters,
+                 samples: Optional[List[np.ndarray]] = None):
         self._x = x
         self._y = y
         self._z = z
         self._status = status
-        self._transform = transform
+        self._func_transform = parameters.func_transform
+        self._func_eval = parameters.func_eval
         if samples is not None:
             [self.add_sample(sample) for sample in samples]
 
-    @abc.abstractmethod
     def add_sample(self, values) -> None:
-        pass
+        self._add_sample(self._func_transform(np.array(values)))
 
     @abc.abstractmethod
-    def pdf(self, x):
+    def _add_sample(self, values) -> None:
         pass
 
     def eval_samples(self, samples: Samples) -> np.ndarray:
         result = np.zeros(len(samples))
         for i, sample in enumerate(samples):
-            result[i] = self._eval_sample(self._transform(sample))
+            result[i] = self._eval_sample(self._func_transform(sample))
         return result
 
-    @abc.abstractmethod
     def _eval_sample(self, sample: np.ndarray) -> np.ndarray:
-        pass
+        return self._func_eval(self._distribution, sample)
 
     @property
     def coordinates(self) -> np.ndarray:
@@ -52,6 +56,10 @@ class Mine(abc.ABC):
     @property
     def status(self):
         return self._status
+
+    @property
+    def distribution(self):
+        return self._distribution
 
 
 ''' 
@@ -62,95 +70,43 @@ class Mine(abc.ABC):
 class OrigMine(Mine):
     _mu_samples: List[np.ndarray]
 
-    def __init__(self, x: float, y: float, z: float, status: int, samples: Optional[List[np.ndarray]] = None,
-                 transform: Callable = lambda x: x):
+    def __init__(self, **args):
         self._mu_samples = []
-        super(OrigMine, self).__init__(x, y, z, status, samples, transform)
+        super(OrigMine, self).__init__(**args)
 
-    def add_sample(self, values) -> None:
-        mu_new = mathematical.normal_uni_mu(self._transform(np.array(values)))
+    def _add_sample(self, values) -> None:
+        mu_new = normal_uni_mu(values)
         self._mu_samples.append(mu_new)
-
-    def pdf(self, x) -> np.ndarray:
-        return mathematical.normal_uni_pdf(self.mean, self.std, x)
-
-    def _eval_sample(self, sample: np.ndarray):
-        return evaluation.eval_pdf(mathematical.normal_uni_pdf, sample.mean(axis=0), self.mean, self.std)
-
-    @property
-    def mean(self) -> np.ndarray:
-        return mathematical.normal_uni_mu(self._mu_samples)
-
-    @property
-    def std(self) -> np.ndarray:
-        return mathematical.normal_uni_sigma_orig(self._mu_samples)
+        mean = normal_uni_mu(self._mu_samples)
+        std = normal_uni_sigma_orig(self._mu_samples)
+        self._distribution = MultiNormal(mean, np.diag(np.power(std, 2)))
 
 
 class BaselineMine(Mine):
-    _mu: np.ndarray
-    _sigma: np.ndarray
     _samples: List[np.ndarray]
 
-    def __init__(self, x: float, y: float, z: float, status: int, samples: Optional[List[np.ndarray]] = None,
-                 transform: Callable = data.transform_none):
+    def __init__(self, **args):
         self._samples = []
-        super(BaselineMine, self).__init__(x, y, z, status, samples, transform)
+        super(BaselineMine, self).__init__(**args)
 
-    def add_sample(self, values) -> None:
-        self._samples.append(self._transform(np.array(values)))
+    def _add_sample(self, values) -> None:
+        self._samples.append(values)
         stacked_samples = np.row_stack(self._samples)
-        self._mu = mathematical.normal_uni_mu(stacked_samples)
-        self._sigma = mathematical.normal_uni_sigma(stacked_samples)
-
-    def pdf(self, x):
-        return mathematical.normal_uni_pdf(self.mean, self.std, x)
-
-    def _eval_sample(self, sample: np.ndarray) -> np.ndarray:
-        return evaluation.eval_ttest(sample, self.mean)
-
-    @property
-    def mean(self):
-        return self._mu
-
-    @property
-    def std(self):
-        return self._sigma
+        mu = normal_uni_mu(stacked_samples)
+        sigma = normal_uni_sigma(stacked_samples)
+        self._distribution = MultiNormal(mu, np.diag(np.power(sigma, 2)))
 
 
 class BayesianSimpleMine(Mine):
-    _mu: np.ndarray
-    _sigma: np.ndarray
+    def __init__(self, mean: np.ndarray, std: np.ndarray, **kwargs):
+        super(BayesianSimpleMine, self).__init__(**kwargs)
+        mean = np.ones(37) * mean  # TODO: remove hardcoded prior-dim
+        cov = np.diag(np.ones(37) * np.power(std, 2))
+        self._distribution = MultiNormal(mean, cov)
 
-    def __init__(self, x: float, y: float, z: float, status: int, mu_prior: np.ndarray, sigma_prior: np.ndarray,
-                 samples: Optional[List[np.ndarray]] = None, transform: Callable = lambda x: x):
-        self._mu = np.ones(37) * mu_prior  # TODO: remove hardcoded prior-dim
-        self._sigma = np.ones(37) * sigma_prior
-        super(BayesianSimpleMine, self).__init__(x, y, z, status, samples, transform)
-
-    def add_sample(self, values) -> None:
-        if len(values[0]) != len(self._mu):
-            raise ValueError(f'Attribute dims do not agree with prior dims: {len(self._mu)} vs {len(values[0])}')
-
-        values = self._transform(values)
-        # mu_post, sigma_post = mathematical.normal_uni_posterior_sigmaknown(self.mean, self.std, np.std(values, axis=0), values)
-        mu_post, sigma_post = mathematical.normal_uni_posterior_sigmaknown(self.mean, self.std, 1, values)
-        self._mu = mu_post
-        self._sigma = sigma_post
-
-    def pdf(self, x):
-        return mathematical.normal_uni_pdf(self.mean, self.std, x)
-
-    def _eval_sample(self, sample: np.ndarray) -> np.ndarray:
-        return evaluation.eval_ttest(sample, self.mean)
-        # return evaluation.eval_pdf(mathematical.normal_uni_pdf, sample.mean(axis=0), self.mean, self.std)
-
-    @property
-    def mean(self) -> np.ndarray:
-        return self._mu
-
-    @property
-    def std(self) -> np.ndarray:
-        return self._sigma
+    def _add_sample(self, values) -> None:
+        cov_known = np.diag(np.ones(37))  # TODO: remove hardcoded prior-dim
+        self._distribution = self._distribution.posterior(self._func_transform(values), cov_known)
 
 
 if __name__ == '__main__':

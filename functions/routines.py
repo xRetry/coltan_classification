@@ -1,19 +1,14 @@
 import pandas as pd
 import numpy as np
 
-from functions import evaluation
-from functions import plotting
+from functions.plotting import plot_training
 from classes.mines import Mine
-from classes.models import Model
+from classes.models import Model, Parameters
 from classes.samples import TestSamples
 from typing import Callable, Optional
 
 
-def cross_validate(data: pd.DataFrame, mine_class: Mine.__class__, n_fold: int,
-                   loss_func: Callable[[TestSamples, np.ndarray], float]=evaluation.error,
-                   model_kwargs: Optional[dict]=None, mine_kwargs: Optional[dict]=None) -> float:
-    if model_kwargs is None:
-        model_kwargs = {}
+def cross_validate(parameters: Parameters, data: pd.DataFrame, n_fold: int) -> float:
     data_shuffled = data.iloc[np.random.permutation(len(data))]
 
     samples = pd.unique(data['smp'])
@@ -35,25 +30,24 @@ def cross_validate(data: pd.DataFrame, mine_class: Mine.__class__, n_fold: int,
         data_model = data_shuffled[np.isin(data_shuffled['smp'], samples[mask])]
         data_test = data_shuffled[np.isin(data_shuffled['smp'], samples[np.invert(mask)])]
         # Creating model and test samples
-        model = Model(data_model, mine_class, mine_kwargs=mine_kwargs, **model_kwargs)
+        model = Model(parameters, data_model)
         samples_test = TestSamples(data_test)
         # Evaluate test samples
         predictions = model.classify(samples_test)
-        loss[i] = loss_func(samples_test.labels, predictions)
+        loss[i] = parameters.func_loss(samples_test.labels, predictions)
     return loss.mean()
 
 
-def show_training(data: pd.DataFrame, Mine_Class: Mine.__class__, n_samples: int, mine_kwargs: Optional[dict]=None):
-    if mine_kwargs is None:
-        mine_kwargs = {}
+def show_training(parameters: Parameters, data: pd.DataFrame, n_samples: int):
     sample_ids = pd.unique(data['smp'])
 
-    mine: Mine = Mine_Class(
+    mine: Mine = parameters.MineClass(
         x=0,
         y=0,
         z=0,
         status=0,
-        **mine_kwargs
+        parameters=parameters,
+        **parameters.mine_kwargs
     )
 
     samples = []
@@ -65,12 +59,12 @@ def show_training(data: pd.DataFrame, Mine_Class: Mine.__class__, n_samples: int
     max_value = np.max(stacked, axis=0)
     delta = max_value - min_value
     x = np.linspace(min_value - 0.1*delta, max_value + 0.1*delta, 500)
-    y = [mine.pdf(x)]
+    y = [mine.distribution.pdf(x)]
     for i in range(n_samples):
         mine.add_sample(samples[i])
-        y.append(mine.pdf(x))
+        y.append(mine.distribution.pdf(x))
 
-    plotting.plot_training(x, y, samples, attr_idx=0)
+    plot_training(x, y, samples, attr_idx=0)
 
 
 if __name__ == '__main__':

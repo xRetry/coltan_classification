@@ -1,16 +1,14 @@
 import numpy as np
-from typing import Callable
-import scipy.stats
+from classes.distributions import Distribution, MultiNormal
 
 
-def eval_pdf(pdf_func: Callable, sample_means, *args):
-    attr_probabilities = pdf_func(*args, sample_means)
-    return np.product(attr_probabilities)
+def eval_pdf(distribution: Distribution, sample: np.ndarray) -> float:
+    sample_means = sample.mean(axis=0)
+    return distribution.pdf(sample_means)
 
 
-def eval_ttest(sample, *args):
-    attr_probabilities = scipy.stats.ttest_1samp(sample, *args)[1]
-    return np.product(attr_probabilities)
+def eval_ttest(distribution: MultiNormal, sample: np.ndarray) -> float:
+    return distribution.ttest_1sample(sample)
 
 
 '''
@@ -18,13 +16,13 @@ def eval_ttest(sample, *args):
 '''
 
 
-def accuracy(labels: np.ndarray, predictions: np.ndarray) -> float:
+def loss_accuracy(labels: np.ndarray, predictions: np.ndarray) -> float:
     n_correct = (labels == predictions).sum()
     return n_correct / len(predictions)
 
 
-def error(labels: np.ndarray, predictions: np.ndarray) -> float:
-    acc = accuracy(labels, predictions)
+def loss_error(labels: np.ndarray, predictions: np.ndarray) -> float:
+    acc = loss_accuracy(labels, predictions)
     return 1-acc
 
 
@@ -33,7 +31,7 @@ def error(labels: np.ndarray, predictions: np.ndarray) -> float:
 '''
 
 
-def best_mine(eval_results, mines):
+def select_mine(eval_results, mines):
     eval_results = np.array(eval_results)
 
     if len(eval_results.shape) == 1:
@@ -46,7 +44,7 @@ def best_mine(eval_results, mines):
     return selection
 
 
-def best_label(eval_results, mines):
+def select_label(eval_results, mines):
     eval_results = np.array(eval_results)
 
     if len(eval_results.shape) == 1:
