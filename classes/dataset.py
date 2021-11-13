@@ -1,7 +1,10 @@
 import numpy as np
 import pandas as pd
 import os
-from typing import List, Iterator, Iterable
+from typing import List, Iterator, Iterable, Optional
+
+import functions.plotting
+from functions.plotting import plot_correlation_matrix, plot_samples
 
 
 class Sample:
@@ -24,29 +27,29 @@ class Sample:
 
 class Dataset:
     _samples: np.ndarray
+    _attr_labels: np.ndarray
 
-    def __init__(self, file:str='\\data\\ctpa-data.csv'):
-        self._load_from_file(file)
+    def __init__(self, file:Optional[str]='\\data\\ctpa-data.csv'):
+        if file is not None:
+            self._load_from_file(file)
 
-    def _load_from_file(self, file, remove_indices: Iterable = (2, 4, 11, 17, 19, 27, 29, 45, 25)) -> None:
+    def _load_from_file(self, file) -> None:
         """
         Loads data from .csv file, adds mine-ID and creates Samples based on sample ID.
         """
-        # Duplicate attributes in dataset:
-        # 1, 2
-        # 3, 4
-        # 10, 11
-        # 16, 17
-        # 18, 19, 27, 29, 45
-        # 23, 25
 
         # Loading .csv file
         path = os.path.dirname(os.path.dirname(__file__)) + file
         data = pd.read_csv(path, sep=';')
         # Adding unique identifier for each mine
         data['mineID'] = data['x'].astype(str) + data['y'].astype(str) + data['z'].astype(str)
-        # Removing indices which are duplicates
-        data = data.drop(columns=[f'Att{i}' for i in remove_indices])
+        # Finding duplicates in dataset
+        corr_mat = np.corrcoef(np.array(data.filter(regex='Att*')).T)
+        is_equal = np.isclose(np.tril(corr_mat, -1), 1, rtol=1e-04, atol=1e-06)
+        idx_duplicates = np.where(is_equal)[0]
+        # Removing duplicates
+        data = data.drop(columns=[f'Att{i}' for i in idx_duplicates])
+        self._attr_labels = data.filter(regex='Att*').columns.values
         # Grouping samples based on sample ID
         samples = []
         sample_ids = pd.unique(data['smp'])
@@ -61,6 +64,10 @@ class Dataset:
             )
             samples.append(sample)
         self._samples = np.array(samples)
+
+    def _set_parameters(self, samples, attr_labels):
+        self._samples = samples
+        self._attr_labels = attr_labels
 
     def crossval_samples(self, n_folds:int, shuffle=True):
         samples_cv = np.array(self._samples)
@@ -87,11 +94,27 @@ class Dataset:
 
         return list(zip(samples_train, samples_test))
 
+    def plot_correlation(self):
+        values = np.row_stack(self.attributes)
+        plot_correlation_matrix(values.T, self._attr_labels)
+
+    def plot_samples(self, attr_idx: int):
+        functions.plotting.plot_samples(self.attributes, attr_idx)
+
+    @property
+    def attributes(self) -> List[np.ndarray]:
+        return [sample.attributes for sample in self._samples]
+
     def __len__(self) -> int:
         return len(self._samples)
 
-    def __getitem__(self, item) -> np.ndarray:
-        return self._samples[item]
+    def __getitem__(self, item):
+        dataset_new = Dataset(None)
+        dataset_new._set_parameters(
+            samples=np.array(self._samples[item]),
+            attr_labels=np.array(self._attr_labels[item])
+        )
+        return dataset_new
 
     def __iter__(self) -> Iterator[Sample]:
         return iter(self._samples)
