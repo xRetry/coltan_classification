@@ -1,49 +1,58 @@
 import numpy as np
 import pandas as pd
-from classes.samples import Samples
 from classes.mines import Mine
 from classes.parameters import Parameters
-from typing import List, Optional, Callable
+from classes.dataset import Dataset, Sample
+from typing import List, Optional, Callable, Dict
 
 
 class Model:
-    _mines: List[Mine]
-    _func_selection: Callable
+    _mines: Dict[str, Mine]
+    _parameters: Parameters
 
-    def __init__(self,parameters: Parameters, data: pd.DataFrame):
-        self._mines = []
-        self._func_selection = parameters.func_selection
-        self._create_mines(data, parameters)
+    def __init__(self,parameters: Parameters, dataset: Dataset):
+        self._mines = {}
+        self._parameters = parameters
+        self._create_mines(dataset)
 
-    def _create_mines(self, data, parameters: Parameters) -> None:
-        mines = {}
-        sample_ids = pd.unique(data['smp'])
-        for i in range(len(sample_ids)):
-            sample_data = data[data['smp'] == sample_ids[i]]
+    def _create_mines(self, dataset: Dataset) -> None:
+        for sample in dataset:
+            self._add_sample(sample)
 
-            mine_id = sample_data['mineID'].iloc[0]
-            mine = mines.get(mine_id)
-            if mine is None:
-                mines[mine_id] = parameters.MineClass(
-                    x=sample_data['x'].iloc[0],
-                    y=sample_data['y'].iloc[0],
-                    z=sample_data['z'].iloc[0],
-                    status=sample_data['FP'].iloc[0],
-                    parameters=parameters,
-                    **parameters.mine_kwargs
-                )
-            mines[mine_id].add_sample(sample_data.filter(regex='Att*').values)
-        self._mines = list(mines.values())
+    def _add_sample(self, sample: Sample):
+        mine_id = sample.mine_id
+        mine = self._mines.get(mine_id)
+        if mine is None:
+            self._mines[mine_id] = self._parameters.MineClass(
+                coordinates=sample.coordinates,
+                status=sample.label,
+                parameters=self._parameters,
+                **self._parameters.mine_kwargs
+            )
+        self._mines[mine_id].add_sample(sample)
 
-    def classify(self, samples: Samples) -> np.ndarray:
-        eval_results = np.zeros((len(samples), len(self._mines)))
-        for i, mine in enumerate(self._mines):
-            eval_results[:, i] = mine.eval_samples(samples)
+    def classify(self, sample: Sample) -> int:
+        mines = list(self._mines.values())
+        eval_results, labels = [], []
+        for mine in mines:
+            eval_results.append(mine.eval_sample(sample))
+            labels.append(mine.status)
+        return self._parameters.func_selection(eval_results, mines)
 
-        return self._func_selection(eval_results, self._mines)
-
-    def __getitem__(self, item) -> Mine:
-        return self._mines[item]
+    def cross_validate(self, dataset: Dataset, n_folds: int) -> float:
+        samples = dataset.crossval_samples(n_folds, shuffle=True)
+        loss = np.zeros(n_folds)
+        # Iterate through folds
+        for i, (samples_train, samples_test) in enumerate(samples):
+            # Creating model and test samples
+            model = Model(self._parameters, samples_train)
+            # Evaluate test samples
+            predictions, labels = np.zeros(len(samples_test)), np.zeros(len(samples_test))
+            for j, sample_test in enumerate(samples_test):
+                predictions[j] = model.classify(sample_test)
+                labels[j] = sample_test.label
+            loss[i] = self._parameters.func_loss(labels, predictions)
+        return loss.mean()
 
 
 if __name__ == '__main__':

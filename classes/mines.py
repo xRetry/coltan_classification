@@ -2,10 +2,10 @@ import numpy as np
 import abc
 
 from functions.mathematical import normal_uni_mu, normal_uni_sigma_orig, normal_uni_sigma
-from classes.samples import Samples
+from classes.dataset import Sample
 from classes.distributions import Distribution, MultiNormal
 from classes.parameters import Parameters
-from typing import List, Optional, Callable
+from typing import List, Optional, Callable, Iterable
 
 
 '''
@@ -14,44 +14,35 @@ from typing import List, Optional, Callable
 
 
 class Mine(abc.ABC):
-    _x: float
-    _y: float
-    _z: float
+    _coordinates: np.ndarray
     _status: int
     _func_transform: Callable
     _func_eval: Callable
     _distribution: Distribution
 
-    def __init__(self, x: float, y: float, z: float, status: int, parameters: Parameters,
-                 samples: Optional[List[np.ndarray]] = None):
-        self._x = x
-        self._y = y
-        self._z = z
+    def __init__(self, coordinates: Iterable, status: int, parameters: Parameters,
+                 samples: Optional[List[Sample]] = None):
+        self._coordinates = np.array(coordinates)
         self._status = status
         self._func_transform = parameters.func_transform
         self._func_eval = parameters.func_eval
         if samples is not None:
             [self.add_sample(sample) for sample in samples]
 
-    def add_sample(self, values) -> None:
-        self._add_sample(self._func_transform(np.array(values)))
+    def add_sample(self, sample: Sample) -> None:
+        self._add_sample(self._func_transform(sample.attributes))
 
     @abc.abstractmethod
     def _add_sample(self, values) -> None:
         pass
 
-    def eval_samples(self, samples: Samples) -> np.ndarray:
-        result = np.zeros(len(samples))
-        for i, sample in enumerate(samples):
-            result[i] = self._eval_sample(self._func_transform(sample))
-        return result
-
-    def _eval_sample(self, sample: np.ndarray) -> np.ndarray:
-        return self._func_eval(self._distribution, sample)
+    def eval_sample(self, sample: Sample) -> float:
+        attr_values = self._func_transform(sample.attributes)
+        return self._func_eval(self._distribution, attr_values)
 
     @property
     def coordinates(self) -> np.ndarray:
-        return np.array([self._x, self._y, self._z])
+        return self._coordinates
 
     @property
     def status(self):

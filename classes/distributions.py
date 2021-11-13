@@ -53,7 +53,7 @@ class MultiNormal(Distribution):
         return MultiNormal(np.diag(mu_post)[:, None], cov_post)
 
     def ttest_1sample(self, x: np.ndarray):
-        attr_probabilities = scipy.stats.ttest_1samp(x, self._mean)
+        attr_probabilities = scipy.stats.ttest_1samp(x, self._mean.T)
         return np.product(attr_probabilities[1])
 
 

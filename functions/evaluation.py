@@ -2,6 +2,39 @@ import numpy as np
 from classes.distributions import Distribution, MultiNormal
 
 
+'''
+    +++ DATA TRANSFORMATIONS +++
+'''
+
+
+def transform_none(x):
+    """
+    Applies no transformation to the input.
+
+    :param x: Any object or value
+    :return: Returns input without modifications
+    """
+    return x
+
+
+def transform_log(x: np.ndarray or list) -> np.ndarray or list:
+    is_list = True
+    if not isinstance(x, list):
+        is_list = False
+        x = [x]
+    for i in range(len(x)):
+        x[i] = np.array(x[i])
+        x[i] = np.log(x[i], out=np.ones_like(x[i])*-20, where=x[i] > 0)  # TODO: Find appropriate value for negative inputs
+    if is_list:
+        return x
+    return x[0]
+
+
+'''
+    +++ SAMPLE EVALUATION +++
+'''
+
+
 def eval_pdf(distribution: Distribution, sample: np.ndarray) -> float:
     sample_means = sample.mean(axis=0)
     return distribution.pdf(sample_means)
@@ -31,33 +64,20 @@ def loss_error(labels: np.ndarray, predictions: np.ndarray) -> float:
 '''
 
 
-def select_mine(eval_results, mines):
-    eval_results = np.array(eval_results)
-
-    if len(eval_results.shape) == 1:
-        eval_results = eval_results.reshape((1, -1))
-
-    selection = np.ones(len(eval_results)) * np.nan
-    is_all_nan = np.all(np.isnan(eval_results),axis=1)
-    idx = np.nanargmax(eval_results[np.invert(is_all_nan), :], axis=1)
-    selection[np.invert(is_all_nan)] = np.array([mines[i].status for i in idx])
-    return selection
+def select_mine(eval_results: np.ndarray, labels: np.ndarray) -> int:
+    if np.all(np.isnan(eval_results)):
+        return np.nan
+    idx = np.nanargmax(eval_results)
+    return labels[idx]
 
 
-def select_label(eval_results, mines):
-    eval_results = np.array(eval_results)
-
-    if len(eval_results.shape) == 1:
-        eval_results = eval_results.reshape((1, -1))
-
-    labels = np.array([m.status for m in mines])
-    sum_full = np.nansum(eval_results, axis=1)
-    sum_pos = np.nansum(eval_results[:, labels == 1], axis=1)
-    p_pos = np.divide(sum_pos, sum_full, out=np.ones_like(sum_pos)*np.nan, where=sum_full != 0)
-    selection = np.ones_like(p_pos)*np.nan
-    is_valid = np.invert(np.isnan(p_pos))
-    selection[is_valid] = -np.ones(len(p_pos[is_valid]), dtype=int) + 2 * (p_pos[is_valid] > 0.5).astype(int)
-    return selection
+def select_label(eval_results: np.ndarray, labels: np.ndarray) -> int:
+    sum_full = np.nansum(eval_results)
+    sum_pos = np.nansum(eval_results[labels == 1])
+    if sum_full == 0:
+        return np.nan
+    p_pos = sum_pos/sum_full
+    return (p_pos > 0.5) * 2 - 1
 
 
 if __name__ == '__main__':
