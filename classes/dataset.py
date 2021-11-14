@@ -21,7 +21,11 @@ class Sample:
         self.sample_id = sample_id
         self.mine_id = mine_id
 
-    def __len__(self):
+    @property
+    def n_attributes(self) -> int:
+        return self.attributes.shape[1]
+
+    def __len__(self) -> int:
         return len(self.attributes)
 
 
@@ -104,6 +108,10 @@ class Dataset:
     @property
     def attributes(self) -> List[np.ndarray]:
         return [sample.attributes for sample in self._samples]
+
+    @property
+    def n_attributes(self) -> int:
+        return self._samples[0].n_attributes
 
     def __len__(self) -> int:
         return len(self._samples)

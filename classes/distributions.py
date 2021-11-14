@@ -12,6 +12,10 @@ class Distribution(abc.ABC):
     def posterior(self, x: np.ndarray, cov_known: np.ndarray):
         pass
 
+    @abc.abstractmethod
+    def __len__(self):
+        pass
+
 
 class MultiNormal(Distribution):
     _mean: np.ndarray
@@ -22,6 +26,8 @@ class MultiNormal(Distribution):
             mean = mean[:, None]
         if mean.shape[0] < mean.shape[1]:
             mean = mean.T
+        if cov.shape[0] != cov.shape[1]:
+            raise TypeError('Covariance matrix is not square!')
         self._mean = mean
         self._cov = cov
 
@@ -55,6 +61,22 @@ class MultiNormal(Distribution):
     def ttest_1sample(self, x: np.ndarray):
         attr_probabilities = scipy.stats.ttest_1samp(x, self._mean.T)
         return np.product(attr_probabilities[1])
+
+    def kl_divergence(self, mean, cov):
+        # Removing zeros in diagonal of covariance matrix
+        is_not_zero = (np.diag(self._cov) != 0) & (np.diag(cov) != 0)
+        mean1 = self._mean[is_not_zero, :]
+        mean2 = mean[is_not_zero, :]
+        cov1 = self._cov[is_not_zero, :][:, is_not_zero]
+        cov2 = cov[is_not_zero, :][:, is_not_zero]
+        # Computing KL-divergence
+        n = len(mean1)
+        return 1 / 2 * (np.log(np.linalg.det(cov2) / np.linalg.det(cov1)) - n +
+                        np.trace(np.linalg.inv(cov2) @ cov1) +
+                        (mean2 - mean1).T @ np.linalg.inv(cov2) @ (mean2 - mean1))[0][0]
+
+    def __len__(self):
+        return len(self._mean)
 
 
 if __name__ == '__main__':

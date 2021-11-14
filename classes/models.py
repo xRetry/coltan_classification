@@ -33,11 +33,11 @@ class Model:
 
     def classify(self, sample: Sample) -> int:
         mines = list(self._mines.values())
-        eval_results, labels = [], []
-        for mine in mines:
-            eval_results.append(mine.eval_sample(sample))
-            labels.append(mine.status)
-        return self._parameters.func_selection(eval_results, mines)
+        eval_results, labels = np.zeros(len(mines)), np.zeros(len(mines))
+        for i, mine in enumerate(mines):
+            eval_results[i] = mine.eval_sample(sample)
+            labels[i] = mine.status
+        return self._parameters.func_selection(eval_results, labels)
 
     def cross_validate(self, dataset: Dataset, n_folds: int) -> float:
         samples = dataset.crossval_samples(n_folds, shuffle=True)

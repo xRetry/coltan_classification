@@ -1,5 +1,6 @@
 import numpy as np
 from classes.distributions import Distribution, MultiNormal
+from functions.mathematical import normal_uni_sigma
 
 
 '''
@@ -42,6 +43,12 @@ def eval_pdf(distribution: Distribution, sample: np.ndarray) -> float:
 
 def eval_ttest(distribution: MultiNormal, sample: np.ndarray) -> float:
     return distribution.ttest_1sample(sample)
+
+
+def eval_kldivergence_uni(distribution: MultiNormal, sample: np.ndarray) -> float:
+    mean_sample = sample.mean(axis=0)[:, None]
+    cov_sample = np.diag(np.power(normal_uni_sigma(sample, corrected=True), 2))
+    return -distribution.kl_divergence(mean_sample, cov_sample)
 
 
 '''

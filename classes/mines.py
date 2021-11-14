@@ -89,14 +89,12 @@ class BaselineMine(Mine):
 
 
 class BayesianSimpleMine(Mine):
-    def __init__(self, mean: np.ndarray, std: np.ndarray, **kwargs):
+    def __init__(self, mean: np.ndarray, cov: np.ndarray, **kwargs):
         super(BayesianSimpleMine, self).__init__(**kwargs)
-        mean = np.ones(37) * mean  # TODO: remove hardcoded prior-dim
-        cov = np.diag(np.ones(37) * np.power(std, 2))
         self._distribution = MultiNormal(mean, cov)
 
     def _add_sample(self, values) -> None:
-        cov_known = np.diag(np.ones(37))  # TODO: remove hardcoded prior-dim
+        cov_known = np.diag(np.ones(len(self.distribution)))
         self._distribution = self._distribution.posterior(self._func_transform(values), cov_known)
 
 
