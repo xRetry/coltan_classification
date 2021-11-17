@@ -4,7 +4,6 @@ from typing import Callable, Optional
 class Parameters:
     MineClass: object.__class__
     func_transform: Callable
-    func_distgen: Callable
     func_eval: Callable
     func_selection: Callable
     func_loss: Callable
