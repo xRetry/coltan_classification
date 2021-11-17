@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 from functions.evaluation import transform_none, eval_pdf, eval_ttest
 from functions.mathematical import normal_uni_sigma_orig
-from classes.mines import BaselineMine, OrigMine
+from classes.mines import AggregationMine, OrigMine
 from classes.parameters import Parameters
 from classes.dataset import Sample
 import scipy.stats
@@ -40,7 +40,7 @@ class BaselineMineTestCase(unittest.TestCase):
                 func_selection=transform_none,
                 func_loss=transform_none,
             )
-        mine = BaselineMine(
+        mine = AggregationMine(
             coordinates=np.zeros(3),
             status=1,
             samples=[sample1],
@@ -56,7 +56,7 @@ class BaselineMineTestCase(unittest.TestCase):
         self.assertTrue(np.all(np.round(np.diag(mine.distribution._cov), 5) == np.round(np.power(std2_true, 2), 5)))
 
         params.func_eval = eval_ttest
-        mine = BaselineMine(
+        mine = AggregationMine(
             coordinates=np.zeros(3),
             status=1,
             samples=[sample1, sample2],

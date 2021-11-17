@@ -44,9 +44,9 @@ class Model:
         loss = np.zeros(n_folds)
         # Iterate through folds
         for i, (samples_train, samples_test) in enumerate(samples):
-            # Creating model and test samples
+            # Creating model and test values
             model = Model(self._parameters, samples_train)
-            # Evaluate test samples
+            # Evaluate test values
             predictions, labels = np.zeros(len(samples_test)), np.zeros(len(samples_test))
             for j, sample_test in enumerate(samples_test):
                 predictions[j] = model.classify(sample_test)

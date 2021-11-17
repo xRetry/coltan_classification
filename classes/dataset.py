@@ -54,7 +54,7 @@ class Dataset:
         # Removing duplicates
         data = data.drop(columns=[f'Att{i}' for i in idx_duplicates])
         self._attr_labels = data.filter(regex='Att*').columns.values
-        # Grouping samples based on sample ID
+        # Grouping values based on sample ID
         samples = []
         sample_ids = pd.unique(data['smp'])
         for sample_id in sample_ids:

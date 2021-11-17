@@ -9,18 +9,18 @@ class NormalUniMu_TestCase(unittest.TestCase):
     def test_single(self):
         values = np.array([2, 3, 4])
         result_true = np.mean(values)
-        result = mathematical.normal_uni_mu(values)
+        result = mathematical.normal_uni_mean(values)
         self.assertEqual(result, result_true)
 
     def test_1d_column(self):
         values = np.array([2, 3, 4])[:, None]
         result_true = np.mean(values)
-        result = mathematical.normal_uni_mu(values)
+        result = mathematical.normal_uni_mean(values)
         self.assertEqual(result[0], result_true)
 
     def test_1d_row(self):
         values = np.array([[2, 3, 4]])
-        result = mathematical.normal_uni_mu(values)
+        result = mathematical.normal_uni_mean(values)
         self.assertTrue(np.all(result == values[0]))
 
     def test_2d(self):
@@ -30,14 +30,14 @@ class NormalUniMu_TestCase(unittest.TestCase):
             [4, 5, 6]
         ])
         result_true = np.mean(values, axis=0)
-        result = mathematical.normal_uni_mu(values)
+        result = mathematical.normal_uni_mean(values)
         self.assertTrue(np.all(result == result_true))
 
     def test_3d(self):
         values = np.ones((3, 3, 3))
         raised_error = False
         try:
-            result = mathematical.normal_uni_mu(values)
+            result = mathematical.normal_uni_mean(values)
         except ValueError:
             raised_error = True
         self.assertTrue(raised_error)
@@ -47,18 +47,18 @@ class NormalUniSigma_TestCase(unittest.TestCase):
     def test_single(self):
         values = np.array([2, 3, 4])
         result_true = np.std(values)
-        result = mathematical.normal_uni_sigma(values)
+        result = mathematical.normal_uni_std(values, corrected=False)
         self.assertEqual(result, result_true)
 
     def test_1d_column(self):
         values = np.array([2, 3, 4])[:, None]
         result_true = np.std(values)
-        result = mathematical.normal_uni_sigma(values)
+        result = mathematical.normal_uni_std(values, corrected=False)
         self.assertEqual(result[0], result_true)
 
     def test_1d_row(self):
         values = np.array([[2, 3, 4]])
-        result = mathematical.normal_uni_sigma(values)
+        result = mathematical.normal_uni_std(values, corrected=False)
         self.assertTrue(np.all(result == [0, 0, 0]))
 
     def test_2d(self):
@@ -68,14 +68,14 @@ class NormalUniSigma_TestCase(unittest.TestCase):
             [4, 5, 6]
         ])
         result_true = np.std(values, axis=0)
-        result = mathematical.normal_uni_sigma(values)
+        result = mathematical.normal_uni_std(values, corrected=False)
         self.assertTrue(np.all(result == result_true))
 
     def test_3d(self):
         values = np.ones((3, 3, 3))
         raised_error = False
         try:
-            result = mathematical.normal_uni_sigma(values)
+            result = mathematical.normal_uni_std(values)
         except ValueError:
             raised_error = True
         self.assertTrue(raised_error)
