@@ -90,20 +90,36 @@ class NonParametric:
     def __init__(self, samples: np.ndarray=np.array([])):
         self._samples = samples
 
-    def test_wilcoxon(self, sample):
-        test_result = scipy.stats.wilcoxon(self._samples, sample)
-        return np.product(test_result[1])
+    def test_dot(self, sample_vector: np.ndarray) -> float:
+        return float(np.dot(sample_vector, self._samples.mean(axis=0)))
 
-    def test_ranksums(self, sample):
-        test_result = scipy.stats.ranksums(self._samples, sample)
-        return np.product(test_result[1])
+    def test_norm_frobenius(self, sample: np.ndarray) -> float:
+        return -float(np.linalg.norm(self._samples.mean(axis=0) - sample.mean(axis=0)))
 
-    def test_mannwhitneyu(self, sample):
-        test_result = scipy.stats.mannwhitneyu(self._samples, sample)
-        return np.product(test_result[1])
+    def test_norm_1(self, sample: np.ndarray) -> float:
+        return -float(np.linalg.norm(self._samples.mean(axis=0) - sample.mean(axis=0), 1))
+
+    def test_norm_2(self, sample: np.ndarray) -> float:
+        return -float(np.linalg.norm(self._samples.mean(axis=0) - sample.mean(axis=0), 2))
+
+    def test_ranksums(self, sample: np.ndarray) -> float:
+        n_attr = self._samples.shape[1]
+        p_vals = np.zeros(n_attr)
+        for i in range(n_attr):
+            test_result = scipy.stats.ranksums(self._samples[:, i], sample[:, i])
+            p_vals[i] = test_result[1]
+        return np.product(p_vals)  # TODO: Try other method of aggregation
+
+    def test_mannwhitneyu(self, sample: np.ndarray) -> float:
+        n_attr = self._samples.shape[1]
+        p_vals = np.zeros(n_attr)
+        for i in range(n_attr):
+            test_result = scipy.stats.mannwhitneyu(self._samples[:, i], sample[:, i])
+            p_vals[i] = test_result[1]
+        return np.product(p_vals)
 
     def __len__(self):
-        pass
+        raise NotImplementedError()
 
     @property
     def values(self):
