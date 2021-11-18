@@ -8,17 +8,9 @@ from functions.plotting import plot_eval_results, plot_eval_results_2d
 
 
 class EvalFuncAnalyser:
-    _eval_func: Callable
-    _func_name: str
-    _class_name: str
-
-    def __init__(self, eval_func: Callable):
-        func_str = eval_func.__qualname__.split('.')
-        self._class_name = func_str[0]
-        self._func_name = func_str[1]
-        self._eval_func = eval_func
-
-    def func_analysis(self, eval_func: List[Callable] or Callable):
+    @staticmethod
+    def func_analysis(eval_func: List[Callable] or Callable):
+        self = EvalFuncAnalyser
         if not isinstance(eval_func, list):
             eval_func = [eval_func]
 
@@ -44,7 +36,9 @@ class EvalFuncAnalyser:
         labels = [func.__qualname__ for func in eval_func]
         plot_eval_results(offsets_x, results_all, labels)
 
-    def func_analysis_2d(self, eval_func: Callable):
+    @staticmethod
+    def func_analysis_2d(eval_func: Callable):
+        self = EvalFuncAnalyser
         np.random.seed(0)
 
         attr_vals = np.random.multivariate_normal(mean=[1000, 1000], cov=[[1, 0], [0, 1]], size=50)
@@ -94,7 +88,9 @@ class EvalFuncAnalyser:
         )
         return sample
 
-    def sample_evaluation(self, eval_func:Callable):
+    @staticmethod
+    def sample_evaluation(eval_func:Callable):
+        self = EvalFuncAnalyser
         dataset = Dataset()
         mine_ids_unique, mine_ids_count = np.unique([smp.mine_id for smp in dataset], return_counts=True)
         idx_selected = np.argmax(mine_ids_count)
