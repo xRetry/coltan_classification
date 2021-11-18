@@ -101,6 +101,18 @@ class AggregationUniMine(Mine):
         std = normal_uni_std(sample, corrected=True)
         return MultiNormal(mean, std=std)
 
+    def eval_dot(self, sample: np.ndarray) -> float:
+        return self._distribution.test_dot(sample.mean(axis=0))
+
+    def eval_frobenius(self, sample: np.ndarray) -> float:
+        return self._distribution.test_norm_frobenius(sample)
+
+    def eval_norm1(self, sample: np.ndarray) -> float:
+        return self._distribution.test_norm_1(sample)
+
+    def eval_norm2(self, sample: np.ndarray) -> float:
+        return self._distribution.test_norm_2(sample)
+
     def eval_ttest(self, sample: np.ndarray) -> float:
         return self._to_normal(self._distribution.values).test_1sample(sample)
 
@@ -111,9 +123,6 @@ class AggregationUniMine(Mine):
     def eval_kldivergence(self, sample: np.ndarray) -> float:
         sample_distribution = self._to_normal(sample)
         return -self._to_normal(self._distribution.values).kl_divergence(sample_distribution.mean, sample_distribution.cov)
-
-    def eval_wilcoxon(self, sample: np.ndarray) -> float:
-        return self._distribution.test_wilcoxon(sample)
 
     def eval_ranksums(self, sample: np.ndarray) -> float:
         return self._distribution.test_ranksums(sample)
