@@ -66,5 +66,33 @@ def plot_correlation_matrix(values: np.ndarray, labels: Optional[Iterable[str]] 
     plt.show()
 
 
+def plot_eval_results(x: np.ndarray, y: List[np.ndarray] or np.ndarray, labels=None):
+    if not isinstance(y, list):
+        y = [y]
+
+    if len(y) > 1:
+        max_val = np.max(y)
+        y = [(y_cur + np.abs(y_cur.min()) if y_cur.min() < 0 else y_cur)/max_val for y_cur in y]
+
+    plt.figure()
+    for y_current in y:
+        plt.plot(x.T, y_current.T)
+
+    plt.xlabel('x Offsets')
+    if len(y) > 1:
+        plt.yticks([])
+    else:
+        plt.ylabel('Evaluation Value')
+    if labels is not None:
+        plt.legend(labels)
+    plt.show()
+
+
+def plot_eval_results_2d(x, y, z):
+    plt.figure()
+    plt.contourf(x, y, z)
+    plt.show()
+
+
 if __name__ == '__main__':
     pass
