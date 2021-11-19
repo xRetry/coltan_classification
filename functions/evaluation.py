@@ -10,24 +10,28 @@ import numpy as np
 def transform_none(x):
     """
     Applies no transformation to the input.
-
-    :param x: Any object or value
-    :return: Returns input without modifications
     """
     return x
 
 
-def transform_log(x: np.ndarray or list) -> np.ndarray or list:
+def transform_log(x: np.ndarray or list, base_10:bool=False) -> np.ndarray or list:
     is_list = True
     if not isinstance(x, list):
         is_list = False
         x = [x]
     for i in range(len(x)):
         x[i] = np.array(x[i])
-        x[i] = np.log(x[i], out=np.ones_like(x[i])*-20, where=x[i] > 0)  # TODO: Find appropriate value for negative inputs
+        if base_10:
+            x[i] = np.log10(x[i], out=np.ones_like(x[i]) * -20, where=x[i] > 0)
+        else:
+            x[i] = np.log(x[i], out=np.ones_like(x[i])*-20, where=x[i] > 0)  # TODO: Find appropriate value for negative inputs
     if is_list:
         return x
     return x[0]
+
+
+def transform_log10(x: np.ndarray or list):
+    return transform_log(x, base_10=True)
 
 
 '''
