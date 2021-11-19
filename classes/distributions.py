@@ -90,9 +90,6 @@ class NonParametric:
     def __init__(self, samples: np.ndarray=np.array([])):
         self._samples = samples
 
-    def test_dot(self, sample_vector: np.ndarray) -> float:
-        return float(np.dot(sample_vector, self._samples.mean(axis=0)))
-
     def test_norm_frobenius(self, sample: np.ndarray) -> float:
         return -float(np.linalg.norm(self._samples.mean(axis=0) - sample.mean(axis=0)))
 
