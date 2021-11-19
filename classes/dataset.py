@@ -1,10 +1,10 @@
 import numpy as np
 import pandas as pd
 import os
-from typing import List, Iterator, Iterable, Optional
-
+from typing import List, Iterator, Iterable, Optional, Callable
+import statsmodels.api as sm
 import functions.plotting
-from functions.plotting import plot_correlation_matrix, plot_samples
+from functions.evaluation import transform_none
 
 
 class Sample:
@@ -70,15 +70,20 @@ class Dataset:
         self._samples = np.array(samples)
 
     def _set_parameters(self, samples, attr_labels):
+        """
+        Method to manually set the Dataset parameters.
+        """
         self._samples = samples
         self._attr_labels = attr_labels
 
     def crossval_samples(self, n_folds:int, shuffle=True):
+        # Copy samples
         samples_cv = np.array(self._samples)
+        # Set up array with fold sizes
         n_samples = len(samples_cv)
         fold_sizes = n_samples // n_folds * np.ones(n_folds, dtype=int)
         fold_sizes[:(n_samples % n_folds)] += 1
-
+        # Shuffle data if wanted
         if shuffle:
             samples_cv = samples_cv[np.random.permutation(len(samples_cv))]
 
@@ -100,10 +105,20 @@ class Dataset:
 
     def plot_correlation(self):
         values = np.row_stack(self.attributes)
-        plot_correlation_matrix(values.T, self._attr_labels)
+        functions.plotting.plot_correlation_matrix(values.T, self._attr_labels)
 
     def plot_samples(self, attr_idx: int):
         functions.plotting.plot_samples(self.attributes, attr_idx)
+
+    def plot_qq(self, attr_idx:int):
+        functions.plotting.plot_qq(self.attributes[0], attr_idx=attr_idx)
+
+    def test_normality(self, func_trans: Callable=transform_none):
+        p_vals_all = np.zeros((len(self), self.n_attributes))
+        for i, sample in enumerate(self):
+            statistic, p_vals = sm.stats.diagnostic.normal_ad(func_trans(sample.attributes))
+            p_vals_all[i, :] = p_vals
+        functions.plotting.plot_norm_test(p_vals_all)
 
     @property
     def attributes(self) -> List[np.ndarray]:
