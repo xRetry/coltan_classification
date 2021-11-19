@@ -101,9 +101,6 @@ class AggregationUniMine(Mine):
         std = normal_uni_std(sample, corrected=True)
         return MultiNormal(mean, std=std)
 
-    def eval_dot(self, sample: np.ndarray) -> float:
-        return self._distribution.test_dot(sample.mean(axis=0))
-
     def eval_frobenius(self, sample: np.ndarray) -> float:
         return self._distribution.test_norm_frobenius(sample)
 
