@@ -9,17 +9,18 @@ from functions.plotting import plot_eval_results, plot_eval_results_2d
 
 class EvalFuncAnalyser:
     @staticmethod
-    def func_analysis(eval_func: List[Callable] or Callable):
+    def func_analysis(eval_func: List[Callable] or Callable, x_min:float=-5, x_max:float=5,
+                      n_pts:int=100, normal_scale:float=1, n_samples:int=50):
         self = EvalFuncAnalyser
         if not isinstance(eval_func, list):
             eval_func = [eval_func]
 
-        offsets_x = np.linspace(-5, 5, 100)
+        offsets_x = np.linspace(x_min, x_max, n_pts)
         results_all = []
         for func in eval_func:
             np.random.seed(0)
 
-            attr_vals = np.random.normal(loc=1000, scale=1, size=50)[:, None]
+            attr_vals = np.random.normal(loc=1000, scale=normal_scale, size=n_samples)[:, None]
             sample_mine = self._create_sample(attr_vals)
             mine = self._create_mine(func)
             mine.add_sample(sample_mine)
@@ -37,7 +38,7 @@ class EvalFuncAnalyser:
         plot_eval_results(offsets_x, results_all, labels)
 
     @staticmethod
-    def func_analysis_2d(eval_func: Callable):
+    def func_analysis_2d(eval_func: Callable, x_limits:tuple=(-5, 5), y_limits:tuple=(-5, 5)):
         self = EvalFuncAnalyser
         np.random.seed(0)
 
@@ -46,20 +47,20 @@ class EvalFuncAnalyser:
         mine = self._create_mine(eval_func)
         mine.add_sample(sample_mine)
 
-        x_steps = np.linspace(-5, 5, 100)
-        y_steps = np.linspace(-5, 5, 100)
+        steps_x = np.linspace(*x_limits, 100)
+        steps_y = np.linspace(*y_limits, 100)
 
-        x_offsets, y_offsets = np.meshgrid(x_steps, y_steps)
-        eval_results = np.zeros_like(x_offsets)
-        for i in range(len(x_offsets)):
-            for j in range(len(y_offsets)):
-                vals_current = np.array(attr_vals)
-                vals_current[:, 0] += x_offsets[i, j]
-                vals_current[:, 1] += y_offsets[i, j]
-                sample_new = self._create_sample(vals_current)
-                eval_results[i, j] = mine.eval_sample(sample_new)
+        offsets_x, offsets_y = np.meshgrid(steps_x, steps_y)
+        results_eval = np.zeros_like(offsets_x)
+        for i in range(len(offsets_x)):
+            for j in range(len(offsets_y)):
+                attr_current = np.array(attr_vals)
+                attr_current[:, 0] += offsets_x[i, j]
+                attr_current[:, 1] += offsets_y[i, j]
+                sample_new = self._create_sample(attr_current)
+                results_eval[i, j] = mine.eval_sample(sample_new)
 
-        plot_eval_results_2d(x_offsets, y_offsets, eval_results)
+        plot_eval_results_2d(offsets_x, offsets_y, results_eval)
 
     @staticmethod
     def _create_mine(eval_func: Callable) -> Mine:
