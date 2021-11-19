@@ -15,6 +15,18 @@ def plot_qq(attribute_values: np.ndarray, attr_idx:int=0):
     plt.show()
 
 
+def plot_norm_test(p_vals: np.ndarray):
+    attr_labels = [f'Attr {i+1}' for i in range(len(p_vals[0, :]))]
+    plt.figure(figsize=(10, 10))
+    sns.boxplot(data=p_vals, orient='h')
+
+    plt.yticks(list(range(len(p_vals[0, :]))), attr_labels)
+    plt.title('Anderson-Darling Normality Test')
+    plt.ylabel('Attribute')
+    plt.xlabel('P-Value')
+    plt.show()
+
+
 def plot_samples(attribute_values: List[np.ndarray], attr_idx: int, ax: plt.Subplot = None):
     has_parent = ax is not None
     if not has_parent:
