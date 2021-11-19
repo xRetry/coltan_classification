@@ -1,7 +1,18 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import scipy.stats
+import statsmodels.api as sm
 from typing import List, Optional, Iterable
+
+
+def plot_qq(attribute_values: np.ndarray, attr_idx:int=0):
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    # sm.graphics.qqplot(attribute_values[:, attr_idx])  # Proper Q-Q Plot
+    scipy.stats.probplot(attribute_values[:, attr_idx], plot=ax)  # Technically not a Q-Q Plot?
+    ax.set_title(f'Attribute {attr_idx}')
+    plt.show()
 
 
 def plot_samples(attribute_values: List[np.ndarray], attr_idx: int, ax: plt.Subplot = None):
