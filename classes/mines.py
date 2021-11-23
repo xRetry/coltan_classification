@@ -3,7 +3,7 @@ import abc
 
 from functions.mathematical import normal_uni_mean, normal_uni_std, normal_uni_median, normal_multi_cov
 from classes.dataset import Sample
-from classes.distributions import MultiNormal, NonParametric
+from classes.distributions import MultiNormal, NonParametric, NormalInverseChiSquared
 from classes.parameters import Parameters
 from typing import List, Optional, Callable, Iterable
 
@@ -151,7 +151,7 @@ class AggregationMultiMine(AggregationUniMine):
         return MultiNormal(mean, cov)
 
 
-class BayesianUniMine(Mine):
+class BayesianSimpleMine(Mine):
     _distribution: MultiNormal
 
     def __init__(self, mean: np.ndarray, cov: np.ndarray, **kwargs):
@@ -178,6 +178,21 @@ class BayesianUniMine(Mine):
     def eval_kldivergence(self, sample: np.ndarray) -> float:
         sample_distribution = self._to_normal(sample)
         return -self._distribution.kl_divergence(sample_distribution.mean, sample_distribution.cov)
+
+
+class BayesianUniMine(Mine):
+    _distribution: NormalInverseChiSquared
+
+    def __init__(self, mean, std, kappa, nu, **kwargs):
+        super().__init__(**kwargs)
+        self._distribution = NormalInverseChiSquared(mean, std, kappa, nu)
+
+    def _add_sample(self, values) -> None:
+        self._distribution = self._distribution.posterior(values)
+
+    def eval_pdf(self, sample: np.ndarray) -> float:
+        sample_means = sample.mean(axis=0)
+        return self._distribution.pdf_predictive(sample_means)
 
 
 if __name__ == '__main__':
