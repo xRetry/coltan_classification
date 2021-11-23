@@ -39,21 +39,6 @@ class Model:
             labels[i] = mine.status
         return self._parameters.func_selection(eval_results, labels)
 
-    def cross_validate(self, dataset: Dataset, n_folds: int) -> float:
-        samples = dataset.crossval_samples(n_folds, shuffle=True)
-        loss = np.zeros(n_folds)
-        # Iterate through folds
-        for i, (samples_train, samples_test) in enumerate(samples):
-            # Creating model and test values
-            model = Model(self._parameters, samples_train)
-            # Evaluate test values
-            predictions, labels = np.zeros(len(samples_test)), np.zeros(len(samples_test))
-            for j, sample_test in enumerate(samples_test):
-                predictions[j] = model.classify(sample_test)
-                labels[j] = sample_test.label
-            loss[i] = self._parameters.func_loss(labels, predictions)
-        return loss.mean()
-
 
 if __name__ == '__main__':
     pass
