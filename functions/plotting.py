@@ -16,10 +16,12 @@ def plot_qq(attribute_values: np.ndarray, attr_idx:int=0):
 
 
 def plot_norm_test(p_vals: np.ndarray):
+    # Create attribute labels
     attr_labels = [f'Attr {i+1}' for i in range(len(p_vals[0, :]))]
+    # Plot p values
     plt.figure(figsize=(10, 10))
     sns.boxplot(data=p_vals, orient='h')
-
+    # Modifying layout
     plt.yticks(list(range(len(p_vals[0, :]))), attr_labels)
     plt.title('Anderson-Darling Normality Test')
     plt.ylabel('Attribute')
@@ -63,8 +65,9 @@ def plot_training(x: np.ndarray, y: list, samples: List[np.ndarray], attr_idx: i
 
 
 def plot_correlation_matrix(values: np.ndarray, labels: Optional[Iterable[str]] = None):
+    # Compute values of correlation matrix
     corr_matrix = np.corrcoef(values)
-
+    # Plotting correlation matrix
     f, ax = plt.subplots(figsize=(30, 30))
     heatmap = sns.heatmap(
         corr_matrix,
@@ -78,34 +81,35 @@ def plot_correlation_matrix(values: np.ndarray, labels: Optional[Iterable[str]] 
         annot=True,
         annot_kws={"size": 12}
     )
-
     # Add labels
     if labels is not None:
         ax.set_yticklabels(labels, rotation=0)
         ax.set_xticklabels(labels)
-
+    # Modify layout
     sns.set_style({'xtick.bottom': True}, {'ytick.left': True})
     plt.tight_layout()
     plt.show()
 
 
 def plot_eval_results(x: np.ndarray, y: List[np.ndarray] or np.ndarray, labels=None):
+    # Wrap y value if only one eval result
     if not isinstance(y, list):
         y = [y]
-
+    # Normalize y values if multiple eval results are provided
     if len(y) > 1:
         max_val = np.max(y)
         y = [(y_cur + np.abs(y_cur.min()) if y_cur.min() < 0 else y_cur)/max_val for y_cur in y]
-
+    # Plot all eval results
     plt.figure()
     for y_current in y:
         plt.plot(x.T, y_current.T)
-
+    # Setting labels
     plt.xlabel('x Offsets')
     if len(y) > 1:
         plt.yticks([])
     else:
         plt.ylabel('Evaluation Value')
+    # Add legend if labels are provided
     if labels is not None:
         plt.legend(labels)
     plt.show()
