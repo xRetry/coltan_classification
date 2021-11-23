@@ -1,6 +1,7 @@
 import numpy as np
 from typing import Callable, List
 from classes.mines import Mine, OrigMine, AggregationUniMine
+from classes.models import Model
 from classes.dataset import Sample, Dataset
 from classes.parameters import Parameters
 from functions.evaluation import transform_none
@@ -114,6 +115,36 @@ class EvalFuncAnalyser:
             x_vals[s, :] = attr_orig[:, 0].mean() * multipliers
 
         plot_eval_results(x_vals, eval_results)
+
+
+class ModelAnalyser:
+    _parameters: Parameters
+
+    def __init__(self, parameters: Parameters):
+        self._parameters = parameters
+
+    def cross_validate(self, dataset: Dataset, n_folds: int) -> float:
+        samples = dataset.crossval_samples(n_folds, shuffle=True)
+        predictions, labels = [], []
+        # Iterate through folds
+        for i, (samples_train, samples_test) in enumerate(samples):
+            # Creating model and test values
+            model = Model(self._parameters, samples_train)
+            # Evaluate test values
+            predictions_fold, labels_fold = np.zeros(len(samples_test)), np.zeros(len(samples_test))
+            for j, sample_test in enumerate(samples_test):
+                predictions_fold[j] = model.classify(sample_test)
+                labels_fold[j] = sample_test.label
+            predictions.append(predictions_fold)
+            labels.append(labels_fold)
+            #loss[i] = self._parameters.func_loss(labels, predictions)
+        return self._compute_loss(labels, predictions)
+
+    def _compute_loss(self, labels:List[np.ndarray], predictions:List[np.ndarray]) -> float:
+        loss = np.zeros(len(labels))
+        for i in range(len(labels)):
+            loss[i] = self._parameters.func_loss(labels[i], predictions[i])
+        return loss.mean()
 
 
 if __name__ == '__main__':
