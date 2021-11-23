@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.stats
+import scipy.special
 import abc
 from typing import Optional
 
@@ -121,6 +122,46 @@ class NonParametric:
     @property
     def values(self):
         return self._samples
+
+
+class NormalInverseChiSquared:
+    _mean: float
+    _std: float
+    _kappa: float
+    _nu: float
+
+    def __init__(self, mean, std, kappa, nu):
+        self._mean = mean
+        self._std = std
+        self._kappa = kappa
+        self._nu = nu
+
+    def posterior(self, x:np.ndarray):
+        if len(x.shape) != 2:
+            raise ValueError('New data needs to be two dimensional!')
+
+        n = len(x)
+        x_mean = x.mean(axis=0)
+        _var = np.power(self._std, 2)
+
+        kappa = self._kappa + n
+        mean = (self._kappa*self._mean + n*x_mean) / kappa
+        nu = self._nu + n
+        std = np.sqrt(1/nu * (self._nu*_var + np.sum(np.power(x-x_mean, 2), axis=0) + (n*self._kappa)/(self._kappa+n) * np.power(self._mean - x_mean, 2)))
+        return NormalInverseChiSquared(mean, std, kappa, nu)
+
+    def pdf(self, mean, std) -> float:
+        _var = np.power(self._std, 2)
+        var = np.power(std, 2)
+        Z = np.sqrt(2*np.pi)/np.sqrt(self._kappa) * scipy.special.gamma(self._nu/2) * np.power(2/(self._nu * _var), self._nu/2)
+        return 1/Z * np.power(std, -1) * np.power(var, -(self._nu/2+1)) * np.exp(-1/(2*var) * (self._nu*_var + self._kappa*np.power(self._mean - mean, 2)))
+
+    def pdf_predictive(self, x) -> float:
+        a = (self._kappa+1) * self._nu * np.power(self._std, 2)
+        p = scipy.special.gamma((self._nu + 1)/2) / scipy.special.gamma(self._nu/2) *\
+            np.power(self._kappa/(np.pi * a), 1/2) *\
+            np.power(1 + (self._kappa * np.power(x-self._mean, 2)) / a, -(self._nu + 1)/2)
+        return np.product(p)
 
 
 if __name__ == '__main__':
