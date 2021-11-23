@@ -117,5 +117,11 @@ def plot_eval_results_2d(x, y, z):
     plt.show()
 
 
+def plot_pdf(x, y):
+    plt.figure()
+    plt.plot(x, y)
+    plt.show()
+
+
 if __name__ == '__main__':
     pass
