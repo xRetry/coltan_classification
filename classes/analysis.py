@@ -123,7 +123,7 @@ class ModelAnalyser:
     def __init__(self, parameters: Parameters):
         self._parameters = parameters
 
-    def cross_validate(self, dataset: Dataset, n_folds: int) -> float:
+    def cross_validate(self, dataset: Dataset, n_folds: int) -> float or np.ndarray:
         samples = dataset.crossval_samples(n_folds, shuffle=True)
         predictions, labels = [], []
         # Iterate through folds
@@ -137,14 +137,15 @@ class ModelAnalyser:
                 labels_fold[j] = sample_test.label
             predictions.append(predictions_fold)
             labels.append(labels_fold)
-            #loss[i] = self._parameters.func_loss(labels, predictions)
         return self._compute_loss(labels, predictions)
 
-    def _compute_loss(self, labels:List[np.ndarray], predictions:List[np.ndarray]) -> float:
-        loss = np.zeros(len(labels))
+    def _compute_loss(self, labels:List[np.ndarray], predictions:List[np.ndarray]) -> float or np.ndarray:
+        loss = []
         for i in range(len(labels)):
-            loss[i] = self._parameters.func_loss(labels[i], predictions[i])
-        return loss.mean()
+            loss.append(self._parameters.func_loss(labels[i], predictions[i]))
+        if isinstance(loss[0], np.ndarray):
+            return np.sum(loss, axis=0) / np.sum(loss)
+        return np.mean(loss)
 
 
 if __name__ == '__main__':
