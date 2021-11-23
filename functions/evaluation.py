@@ -46,8 +46,23 @@ def loss_accuracy(labels: np.ndarray, predictions: np.ndarray) -> float:
 
 
 def loss_error(labels: np.ndarray, predictions: np.ndarray) -> float:
-    acc = loss_accuracy(labels, predictions)
-    return 1-acc
+    return 1-loss_accuracy(labels, predictions)
+
+
+def loss_acc_matrix(labels: np.ndarray, predictions: np.ndarray) -> np.ndarray:
+    tp = ((labels == 1) & (predictions == 1)).sum()
+    fp = ((labels == -1) & (predictions == 1)).sum()
+    tn = ((labels == -1) & (predictions == -1)).sum()
+    fn = ((labels == 1) & (predictions == -1)).sum()
+
+    return np.array([
+        [tn, fp],
+        [fn, tp]
+    ])
+
+
+def loss_error_matrix(labels: np.ndarray, predictions: np.ndarray) -> np.ndarray:
+    return 1-loss_acc_matrix(labels, predictions)
 
 
 '''
