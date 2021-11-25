@@ -48,20 +48,30 @@ def plot_locations(mines: dict):
     plt.show()
 
 
-def plot_training(x: np.ndarray, y: list, samples: List[np.ndarray], attr_idx: int=0):
-    n = len(samples)
-    len_diff = len(y) - n
-    plt.figure()
-    for i in range(len_diff):
-        plt.subplot(n + len_diff, 1, i + 1)
-        plt.plot(x[:, attr_idx], y[i][:, attr_idx])
-
-    for i in range(n):
-        plt.subplot(n+len_diff, 1, len_diff+i+1)
-        plt.hist(samples[i][:, attr_idx], bins=40, density=True)
-        plt.plot(x[:, attr_idx], y[len_diff+i][:, attr_idx])
+def plot_progression(mine_parameters: List[dict], attr_idx: int=0):
+    """
+    Plots the mine parameter values over the amount of samples added.
+    """
+    # Determine amount of parameters
+    n_plots = len(mine_parameters[0])
+    # Getting axis labels
+    labels = list(mine_parameters[0].keys())
+    # Plotting figure
+    fig, axs = plt.subplots(nrows=n_plots, sharex='col')
+    for i in range(n_plots):
+        # Collecting parameter values
+        y = [list(p.values())[i] for p in mine_parameters]
+        # Select certain index if parameter is an array
+        if isinstance(y[0], np.ndarray):
+            y = [v[attr_idx] for v in y]
+        # Creating plot
+        axs[i].plot(np.arange(1, len(mine_parameters)+1), y)
+        # Adding label on y axis
+        axs[i].set_ylabel(labels[i])
+    # Modifying presentation
+    axs[-1].set_xlabel("Amount of Samples added to Mine")
+    plt.tight_layout()
     plt.show()
-    pass
 
 
 def plot_correlation_matrix(values: np.ndarray, labels: Optional[Iterable[str]] = None):
