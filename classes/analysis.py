@@ -5,7 +5,40 @@ from classes.models import Model
 from classes.dataset import Sample, Dataset
 from classes.parameters import Parameters
 from functions.evaluation import transform_none
-from functions.plotting import plot_eval_results, plot_eval_results_2d
+from functions.plotting import plot_eval_results, plot_eval_results_2d, plot_progression
+
+
+class MineAnalyser:
+    _mine_parameters: Parameters
+
+    def __init__(self, parameters: Parameters):
+        self._mine_parameters = parameters
+
+    def parameter_progression(self) -> None:
+        """
+        Progressively adds samples to mine and collects the parameters. Plots the result.
+        """
+        # Load dataset
+        dataset = Dataset()
+        # Get unique mine IDs and the amount of samples per mine
+        mine_ids_unique, mine_ids_count = np.unique([smp.mine_id for smp in dataset], return_counts=True)
+        # Select mine with most samples for analysis
+        idx_selected = np.argmax(mine_ids_count)
+        samples_mine_selected = [sample for sample in dataset if sample.mine_id == mine_ids_unique[idx_selected]]
+        # Build mine
+        mine = self._mine_parameters.MineClass(
+            coordinates=np.zeros(3),
+            status=0,
+            parameters=self._mine_parameters,
+            **self._mine_parameters.mine_kwargs
+        )
+        # Adding samples to mine and collecting parameters
+        distr_params = []
+        for sample in samples_mine_selected:
+            mine.add_sample(sample)
+            distr_params.append(mine.distribution.parameters)
+        # Plotting the mine parameters over time
+        plot_progression(distr_params)
 
 
 class EvalFuncAnalyser:
