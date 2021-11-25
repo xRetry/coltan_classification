@@ -5,7 +5,14 @@ import abc
 from typing import Optional
 
 
-class MultiNormal:
+class Distribution:
+    @property
+    @abc.abstractmethod
+    def parameters(self) -> dict:
+        pass
+
+
+class MultiNormal(Distribution):
     _mean: np.ndarray
     _cov: np.ndarray
 
@@ -81,11 +88,15 @@ class MultiNormal:
     def cov(self):
         return self._cov
 
+    @property
+    def parameters(self) -> dict:
+        return {'mean':self.mean, 'covariance':self.cov}
+
     def __len__(self):
         return len(self._mean)
 
 
-class NonParametric:
+class NonParametric(Distribution):
     _samples: np.ndarray
 
     def __init__(self, samples: np.ndarray=np.array([])):
@@ -116,15 +127,19 @@ class NonParametric:
             p_vals[i] = test_result[1]
         return np.product(p_vals)
 
-    def __len__(self):
-        raise NotImplementedError()
-
     @property
     def values(self):
         return self._samples
 
+    @property
+    def parameters(self) -> dict:
+        return {'values': self.values}
 
-class NormalInverseChiSquared:
+    def __len__(self):
+        raise NotImplementedError()
+
+
+class NormalInverseChiSquared(Distribution):
     _mean: float
     _std: float
     _kappa: float
@@ -162,6 +177,10 @@ class NormalInverseChiSquared:
             np.power(self._kappa/(np.pi * a), 1/2) *\
             np.power(1 + (self._kappa * np.power(x-self._mean, 2)) / a, -(self._nu + 1)/2)
         return np.product(p)
+
+    @property
+    def parameters(self):
+        return {'mean': self._mean, 'std': self._std, 'nu': self._nu, 'kappa': self._kappa}
 
 
 if __name__ == '__main__':
