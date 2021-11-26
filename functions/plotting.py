@@ -74,6 +74,24 @@ def plot_progression(mine_parameters: List[dict], attr_idx: int=0):
     plt.show()
 
 
+def plot_mine_evaluation(eval_values: np.ndarray, labels: np.ndarray, is_added: np.ndarray):
+    """
+    Plots the mine evaluation values for samples.
+    """
+    plt.figure()
+    # Plot unused samples
+    plt.scatter(eval_values[np.invert(is_added)], labels[np.invert(is_added)], c='b', alpha=0.5)
+    # Plot used samples
+    plt.scatter(eval_values[is_added], labels[is_added], c='r', alpha=0.5)
+    # Modify appearance and layout
+    plt.yticks([1, -1])
+    plt.ylabel('Mine Labels')
+    plt.xlabel('Sample Evaluation Value')
+    plt.legend(['unused', 'used for training'])
+    plt.tight_layout()
+    plt.show()
+
+
 def plot_correlation_matrix(values: np.ndarray, labels: Optional[Iterable[str]] = None):
     # Compute values of correlation matrix
     corr_matrix = np.corrcoef(values)
