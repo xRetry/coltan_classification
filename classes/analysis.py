@@ -1,10 +1,10 @@
 import numpy as np
 from typing import Callable, List
-from classes.mines import Mine, OrigMine, AggregationUniMine
+from classes.mines import Mine
 from classes.models import Model
 from classes.dataset import Sample, Dataset
 from classes.parameters import Parameters
-from functions.evaluation import transform_none
+from classes.evaluation import Transformation, Normalization
 from functions.plotting import plot_eval_results, plot_eval_results_2d, plot_progression, plot_mine_evaluation
 
 
@@ -142,10 +142,11 @@ class EvalFuncAnalyser:
             status=0,
             parameters=Parameters(
                 MineClass=None,
-                func_transform=transform_none,
+                func_normalize=Normalization.none,
+                func_transform=Transformation.none,
                 func_eval=eval_func,
-                func_loss=transform_none,
-                func_selection=transform_none
+                func_loss=Transformation.none,
+                func_selection=Transformation.none
             )
         )
         return mine

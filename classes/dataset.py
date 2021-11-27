@@ -1,10 +1,10 @@
 import numpy as np
 import pandas as pd
 import os
-from typing import List, Iterator, Iterable, Optional, Callable
+from typing import List, Iterator, Optional, Callable
 import statsmodels.api as sm
 import functions.plotting
-from functions.evaluation import transform_none
+from classes.evaluation import Transformation
 
 
 class Sample:
@@ -113,7 +113,7 @@ class Dataset:
     def plot_qq(self, attr_idx:int):
         functions.plotting.plot_qq(self.attributes[0], attr_idx=attr_idx)
 
-    def test_normality(self, func_trans: Callable=transform_none):
+    def test_normality(self, func_trans: Callable=Transformation.none):
         p_vals_all = np.zeros((len(self), self.n_attributes))
         for i, sample in enumerate(self):
             statistic, p_vals = sm.stats.diagnostic.normal_ad(func_trans(sample.attributes))

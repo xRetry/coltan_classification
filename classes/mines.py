@@ -17,25 +17,29 @@ from typing import List, Optional, Callable, Iterable
 class Mine(abc.ABC):
     _coordinates: np.ndarray
     _status: int
+    _func_normalize: Callable
     _func_transform: Callable
     _func_eval: Callable
+    _normalize_constant: Optional[np.ndarray]
 
     def __init__(self, coordinates: Iterable, status: int, parameters: Parameters):
         self._coordinates = np.array(coordinates)
         self._status = status
+        self._func_normalize = parameters.func_normalize
         self._func_transform = parameters.func_transform
         self._func_eval = parameters.func_eval
         self._distribution = None  # Dummy distribution (gets overwritten)
+        self._normalize_constant = None
 
     def add_sample(self, sample: Sample) -> None:
-        self._add_sample(self._func_transform(sample.attributes))
+        self._add_sample(self._func_transform(self._func_normalize(self, sample.attributes)))
 
     @abc.abstractmethod
     def _add_sample(self, values) -> None:
         pass
 
     def eval_sample(self, sample: Sample) -> float:
-        attr_values = self._func_transform(sample.attributes)
+        attr_values = self._func_transform(self._func_normalize(self, sample.attributes))
         return self._func_eval(self, attr_values)
 
     @property

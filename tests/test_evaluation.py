@@ -1,21 +1,20 @@
 import unittest
-
-from functions import evaluation
-from functions.evaluation import *
+import numpy as np
+from classes.evaluation import Loss, Selection
 
 
 class LossFunctionTestCase(unittest.TestCase):
     def test_accuracy(self):
         labels = np.array([1, 1, 1, 1])
         predictions = np.array([1, 1, np.nan, 1])
-        result = evaluation.loss_accuracy(labels, predictions)
+        result = Loss.accuracy(labels, predictions)
 
         self.assertEqual(result, 0.75)
 
     def test_error(self):
         labels = np.array([1, 1, 1, 1])
         predictions = np.array([1, 1, np.nan, 1])
-        result = evaluation.loss_error(labels, predictions)
+        result = Loss.error(labels, predictions)
 
         self.assertEqual(result, 0.25)
 
@@ -25,30 +24,30 @@ class LabelSelectionTestCase(unittest.TestCase):
         # Normal function
         labels = np.array(list(range(3)))
         eval_result = np.array([0, 1, 3])
-        label_selection = evaluation.select_mine(eval_result, labels)
+        label_selection = Selection.mine(eval_result, labels)
         self.assertEqual(label_selection, 2)
         # NaN value
         eval_result = np.array([0, 1, np.nan])
-        label_selection = evaluation.select_mine(eval_result, labels)
+        label_selection = Selection.mine(eval_result, labels)
         self.assertEqual(label_selection, 1)
         # all NaN values
         eval_result = np.array([np.nan, np.nan, np.nan])
-        label_selection = evaluation.select_mine(eval_result, labels)
+        label_selection = Selection.mine(eval_result, labels)
         self.assertTrue(np.isnan(label_selection))
 
     def test_best_label(self):
         # Normal function
         labels = np.array([-1, -1, 1, 1])
         eval_result = np.array([0.35, 0.05, 0.3, 0.3])
-        label_selection = evaluation.select_label(eval_result, labels)
+        label_selection = Selection.label(eval_result, labels)
         self.assertEqual(label_selection, 1)
         # NaN value
         eval_result = np.array([0.35, 0.05, np.nan, 0.3])
-        label_selection = evaluation.select_label(eval_result, labels)
+        label_selection = Selection.label(eval_result, labels)
         self.assertEqual(label_selection, -1)
         # all NaN values
         eval_result = np.array([np.nan, np.nan, np.nan, np.nan])
-        label_selection = evaluation.select_label(eval_result, labels)
+        label_selection = Selection.label(eval_result, labels)
         self.assertTrue(np.isnan(label_selection))
 
 
