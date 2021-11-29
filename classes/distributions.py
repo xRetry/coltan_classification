@@ -1,3 +1,5 @@
+from abc import ABC
+
 import numpy as np
 import scipy.stats
 import scipy.special
@@ -5,7 +7,7 @@ import abc
 from typing import Optional
 
 
-class Distribution:
+class Distribution(abc.ABC):
     @property
     @abc.abstractmethod
     def parameters(self) -> dict:
@@ -139,7 +141,7 @@ class NonParametric(Distribution):
         raise NotImplementedError()
 
 
-class NormalInverseChiSquared(Distribution):
+class NormalInverseChiSquared(Distribution):  # TODO: Test distribution
     _mean: float
     _std: float
     _kappa: float
@@ -151,7 +153,7 @@ class NormalInverseChiSquared(Distribution):
         self._kappa = kappa
         self._nu = nu
 
-    def posterior(self, x:np.ndarray):
+    def posterior(self, x:np.ndarray) -> Distribution:
         if len(x.shape) != 2:
             raise ValueError('New data needs to be two dimensional!')
 
@@ -172,15 +174,83 @@ class NormalInverseChiSquared(Distribution):
         return 1/Z * np.power(std, -1) * np.power(var, -(self._nu/2+1)) * np.exp(-1/(2*var) * (self._nu*_var + self._kappa*np.power(self._mean - mean, 2)))
 
     def pdf_predictive(self, x) -> float:
-        a = (self._kappa+1) * self._nu * np.power(self._std, 2)
-        p = scipy.special.gamma((self._nu + 1)/2) / scipy.special.gamma(self._nu/2) *\
-            np.power(self._kappa/(np.pi * a), 1/2) *\
-            np.power(1 + (self._kappa * np.power(x-self._mean, 2)) / a, -(self._nu + 1)/2)
+        #a = (self._kappa+1) * self._nu * np.power(self._std, 2)
+        #p = scipy.special.gamma((self._nu + 1)/2) / scipy.special.gamma(self._nu/2) *\
+        #    np.power(self._kappa/(np.pi * a), 1/2) *\
+        #    np.power(1 + (self._kappa * np.power(x-self._mean, 2)) / a, -(self._nu + 1)/2)
+        p = scipy.stats.t.pdf(
+            x=x,
+            df=self._nu,
+            loc=self._mean,
+            scale=(1+self._kappa)*np.power(self._std, 2) / self._kappa
+        )
         return np.product(p)
 
     @property
     def parameters(self):
         return {'mean': self._mean, 'std': self._std, 'nu': self._nu, 'kappa': self._kappa}
+
+
+class NormalInverseWishart(Distribution):  # TODO: Test distribution
+    _mean: np.ndarray
+    _prec: np.ndarray
+    _kappa: np.ndarray
+    _nu: np.ndarray
+
+    def __init__(self, mean, prec, kappa, nu):
+        self._mean = mean
+        self._prec = prec
+        self._kappa = kappa
+        self._nu = nu
+
+    def posterior(self, x: np.ndarray) -> Distribution:
+        """
+        Creates new NIW distribution with parameters of the posterior given the new data.
+        """
+        # Check sample dimensions
+        if len(x.shape) != 2:
+            raise ValueError('New data needs to be two dimensional!')
+        # Precompute necessary values
+        n = len(x)
+        x_mean = x.mean(axis=0)
+        mean_diff = (x_mean - self._mean)
+        x_centered = (x - x_mean)
+        S = np.sum(x_centered @ x_centered.T, axis=0)
+        # Compute posterior parameters
+        mean = (self._kappa / (self._kappa + n) * self._mean + n / (self._kappa + n) * x_mean)
+        kappa = self._kappa + n
+        nu = self._nu + n
+        prec = self._prec + S + self._kappa * n / (self._kappa + n) * mean_diff @ mean_diff.T
+        # Return distribution with new parameters
+        return NormalInverseWishart(mean, prec, kappa, nu)
+
+    def pdf(self, mean, cov) -> float:
+        """
+        Computes the pdf value for provided mean and cov.
+        """
+        d = len(mean)
+        lam_det = np.linalg.det(self._prec)
+        cov_det = np.linalg.det(cov)
+        cov_inv = np.linalg.inv(cov)
+        mean_diff = (mean - self._mean)
+        Z = (np.power(2, self._nu * d / 2) * scipy.special.gamma(self._nu/2) * np.power(2*np.pi/self._kappa, d/2)) / np.power(lam_det, self._nu/2)
+        return 1/Z * np.power(cov_det, -((self._nu+d)/2+1)) * np.exp(-1 / 2 * np.trace(self._prec @ cov_inv) - self._kappa / 2 * mean_diff.T @ cov_inv @ mean_diff)
+
+    def pdf_predictive(self, x: np.ndarray) -> float:
+        """
+        Computes the pdf value for a new sample.
+        """
+        d = len(self._mean)
+        return scipy.stats.t.pdf(
+            x=x,
+            df=self._nu-d+1,
+            loc=self._mean,
+            scale=self._prec * (self._kappa+1) / (self._kappa * (self._nu-d+1))
+        )
+
+    @property
+    def parameters(self) -> dict:
+        return {'mean': self._mean, 'precision': self._prec, 'kappa': self._kappa, 'nu': self._nu}
 
 
 if __name__ == '__main__':
