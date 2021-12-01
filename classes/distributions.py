@@ -148,6 +148,11 @@ class NormalInverseChiSquared(Distribution):  # TODO: Test distribution
     _nu: float
 
     def __init__(self, mean, std, kappa, nu):
+        if len(mean.shape) == 1:
+            mean = mean[:, None]
+        if len(std.shape) == 1:
+            std = std[:, None]
+
         self._mean = mean
         self._std = std
         self._kappa = kappa
@@ -158,13 +163,13 @@ class NormalInverseChiSquared(Distribution):  # TODO: Test distribution
             raise ValueError('New data needs to be two dimensional!')
 
         n = len(x)
-        x_mean = x.mean(axis=0)
+        x_mean = x.mean(axis=0)[:, None]
         _var = np.power(self._std, 2)
 
         kappa = self._kappa + n
         mean = (self._kappa*self._mean + n*x_mean) / kappa
         nu = self._nu + n
-        std = np.sqrt(1/nu * (self._nu*_var + np.sum(np.power(x-x_mean, 2), axis=0) + (n*self._kappa)/(self._kappa+n) * np.power(self._mean - x_mean, 2)))
+        std = np.sqrt(1/nu * (self._nu*_var + np.sum(np.power(x.T-x_mean, 2), axis=1)[:, None] + (n*self._kappa)/(self._kappa+n) * np.power(self._mean - x_mean, 2)))
         return NormalInverseChiSquared(mean, std, kappa, nu)
 
     def pdf(self, mean, std) -> float:
@@ -174,11 +179,7 @@ class NormalInverseChiSquared(Distribution):  # TODO: Test distribution
         return 1/Z * np.power(std, -1) * np.power(var, -(self._nu/2+1)) * np.exp(-1/(2*var) * (self._nu*_var + self._kappa*np.power(self._mean - mean, 2)))
 
     def pdf_predictive(self, x) -> float:
-        #a = (self._kappa+1) * self._nu * np.power(self._std, 2)
-        #p = scipy.special.gamma((self._nu + 1)/2) / scipy.special.gamma(self._nu/2) *\
-        #    np.power(self._kappa/(np.pi * a), 1/2) *\
-        #    np.power(1 + (self._kappa * np.power(x-self._mean, 2)) / a, -(self._nu + 1)/2)
-        p = scipy.stats.t.pdf(
+        p = scipy.stats.t.pdf(  # TODO: Fix output dimensions
             x=x,
             df=self._nu,
             loc=self._mean,
@@ -212,10 +213,14 @@ class NormalInverseWishart(Distribution):  # TODO: Test distribution
             raise ValueError('New data needs to be two dimensional!')
         # Precompute necessary values
         n = len(x)
-        x_mean = x.mean(axis=0)
+        x_mean = x.mean(axis=0)[:, None]
         mean_diff = (x_mean - self._mean)
-        x_centered = (x - x_mean)
-        S = np.sum(x_centered @ x_centered.T, axis=0)
+        #S_mean = n * x_mean[:, None] @ x_mean[:, None].T
+        #S2 = np.zeros((len(x[0]), len(x[0])))
+        #for i in range(n):
+        #    S2 += x[i, None].T @ x[i, None]
+        #S = S2 - S_mean
+        S = np.cov(x.T) * (len(x)-1)
         # Compute posterior parameters
         mean = (self._kappa / (self._kappa + n) * self._mean + n / (self._kappa + n) * x_mean)
         kappa = self._kappa + n
