@@ -1,16 +1,15 @@
 import numpy as np
 import abc
 
-from functions.mathematical import normal_uni_mean, normal_uni_std, normal_uni_median, normal_multi_cov
 from classes.dataset import Sample
-from classes.distributions import MultiNormal, NonParametric, NormalInverseChiSquared
+from functions.distributions import uni_normal, multi_normal, normal_inverse_wishart, non_parametric, normal_inverse_chisquared
 from classes.parameters import Parameters
+from classes.estimators import Estimator
 from typing import List, Optional, Callable, Iterable
 
 
 '''
-    ++++++++++++++++++
-    +++ SUPERCLASS +++
+    ABSTRACT CLASS
 '''
 
 
@@ -20,6 +19,7 @@ class Mine(abc.ABC):
     _func_normalize: Callable
     _func_transform: Callable
     _func_eval: Callable
+    _estimator: Estimator
     _normalize_constant: Optional[np.ndarray]
 
     def __init__(self, coordinates: Iterable, status: int, parameters: Parameters):
@@ -28,7 +28,8 @@ class Mine(abc.ABC):
         self._func_normalize = parameters.func_normalize
         self._func_transform = parameters.func_transform
         self._func_eval = parameters.func_eval
-        self._distribution = None  # Dummy distribution (gets overwritten)
+        self._estimator = parameters.estimator
+
         self._normalize_constant = None
 
     def add_sample(self, sample: Sample) -> None:
@@ -51,152 +52,159 @@ class Mine(abc.ABC):
         return self._status
 
     @property
-    def distribution(self):
-        return self._distribution
+    @abc.abstractmethod
+    def parameters(self) -> dict:
+        pass
 
 
 ''' 
-    ++++++++++++++++++
-    +++ SUBCLASSES +++
+    
+    SUBCLASSES
 '''
 
 
 class OrigMine(Mine):
-    _distribution: NonParametric
+    _parameters: Optional[Sample]
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self._parameters = None
 
-    def _add_sample(self, values) -> None:
-        mean_new = normal_uni_mean(values)
-        if self._distribution is None:
-            means_stacked = np.array([mean_new])
+    def _add_sample(self, attr_values: np.ndarray) -> None:
+        loc = self._estimator.to_loc(attr_values)
+        if self._parameters is None:
+            self._parameters = Sample(attributes=np.expand_dims(loc, axis=0))
         else:
-            means_stacked = np.row_stack([self._distribution.values, mean_new])
-        self._distribution = NonParametric(means_stacked)
+            self._parameters.append(loc)
 
-    @staticmethod
-    def _to_normal(sample: np.ndarray) -> MultiNormal:
-        mean = normal_uni_mean(sample)
-        std = normal_uni_std(sample, corrected=False)
-        return MultiNormal(mean, std=std)
+    def eval_pdf(self, x: np.ndarray) -> float:
+        loc = self._estimator.to_loc(self._parameters.attributes)
+        scale = self._estimator.to_scale(self._parameters.attributes)
+        return uni_normal.pdf(loc, scale, self._estimator.to_loc(x))
 
-    def eval_pdf(self, sample: np.ndarray) -> float:
-        sample_means = sample.mean(axis=0)
-        return self._to_normal(self._distribution.values).pdf(sample_means)
+    @property
+    def parameters(self) -> dict:
+        return {
+            'Location': self._estimator.to_loc(self._parameters.attributes),
+            'Scale': self._estimator.to_scale(self._parameters.attributes)
+        }
 
 
-class AggregationUniMine(Mine):
-    _distribution: NonParametric
+class AggregationMine(Mine):
+    _parameters: Optional[Sample]
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self._parameters = None
 
-    def _add_sample(self, values: np.ndarray) -> None:
-        if self._distribution is None:
-            stacked_samples = np.array(values)
+    def _add_sample(self, attr_values: np.ndarray) -> None:
+        if self._parameters is None:
+            self._parameters = Sample(attributes=attr_values)
         else:
-            stacked_samples = np.row_stack([self._distribution.values, values])
-        self._distribution = NonParametric(stacked_samples)
+            self._parameters.append(attr_values)
 
-    @staticmethod
-    def _to_normal(sample: np.ndarray) -> MultiNormal:
-        mean = normal_uni_mean(sample)
-        std = normal_uni_std(sample, corrected=True)
-        return MultiNormal(mean, std=std)
+    def eval_frobenius(self, x: np.ndarray) -> float:
+        loc = self._estimator.to_loc(self._parameters.attributes)
+        return non_parametric.test_norm_frobenius(loc, self._estimator.to_loc(x))
 
-    def eval_frobenius(self, sample: np.ndarray) -> float:
-        return self._distribution.test_norm_frobenius(sample)
+    def eval_norm1(self, x: np.ndarray) -> float:
+        loc = self._estimator.to_loc(self._parameters.attributes)
+        return non_parametric.test_norm1(loc, self._estimator.to_loc(x))
 
-    def eval_norm1(self, sample: np.ndarray) -> float:
-        return self._distribution.test_norm_1(sample)
+    def eval_norm2(self, x: np.ndarray) -> float:
+        loc = self._estimator.to_loc(self._parameters.attributes)
+        return non_parametric.test_norm2(loc, self._estimator.to_loc(x))
 
-    def eval_norm2(self, sample: np.ndarray) -> float:
-        return self._distribution.test_norm_2(sample)
+    def eval_ttest(self, x: np.ndarray) -> float:
+        loc = self._estimator.to_loc(self._parameters.attributes)
+        return uni_normal.test_1sample(loc, x)
 
-    def eval_ttest(self, sample: np.ndarray) -> float:
-        return self._to_normal(self._distribution.values).test_1sample(sample)
+    def eval_pdf(self, x: np.ndarray) -> float:
+        loc = self._estimator.to_loc(self._parameters.attributes)
+        scale = self._estimator.to_scale(self._parameters.attributes)
+        return uni_normal.pdf(loc, scale, x)
 
-    def eval_pdf(self, sample: np.ndarray) -> float:
-        sample_means = sample.mean(axis=0)
-        return self._to_normal(self._distribution.values).pdf(sample_means)
+    def eval_kldivergence(self, x: np.ndarray) -> float:
+        raise NotImplementedError()
 
-    def eval_kldivergence(self, sample: np.ndarray) -> float:
-        sample_distribution = self._to_normal(sample)
-        return -self._to_normal(self._distribution.values).kl_divergence(sample_distribution.mean, sample_distribution.cov)
+    def eval_ranksums(self, x: np.ndarray) -> float:
+        #return NonParametric.test_ranksums(self._parameters.mean(), x)
+        raise NotImplementedError()
 
-    def eval_ranksums(self, sample: np.ndarray) -> float:
-        return self._distribution.test_ranksums(sample)
+    def eval_mannwhitneyu(self, x: np.ndarray) -> float:
+        #return self._distribution.test_mannwhitneyu(sample)
+        raise NotImplementedError()
 
-    def eval_mannwhitneyu(self, sample: np.ndarray) -> float:
-        return self._distribution.test_mannwhitneyu(sample)
-
-
-class AggregationUniMineRobust(AggregationUniMine):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-    @staticmethod
-    def _to_normal(sample: np.ndarray) -> MultiNormal:
-        median = normal_uni_median(sample)
-        std = normal_uni_std(sample, mean=median, corrected=True)
-        return MultiNormal(median, std=std)
-
-
-class AggregationMultiMine(AggregationUniMine):
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-    @staticmethod
-    def _to_normal(sample: np.ndarray) -> MultiNormal:
-        mean = normal_uni_mean(sample)
-        cov = normal_multi_cov(sample, corrected=True)
-        return MultiNormal(mean, cov)
+    @property
+    def parameters(self) -> dict:
+        return {
+            'Location': self._estimator.to_loc(self._parameters.attributes),
+            'Scale': self._estimator.to_scale(self._parameters.attributes)
+        }
 
 
 class BayesianSimpleMine(Mine):
-    _distribution: MultiNormal
+    _mean: np.ndarray
+    _std: np.ndarray
 
-    def __init__(self, mean: np.ndarray, cov: np.ndarray, **kwargs):
+    def __init__(self, mean: np.ndarray, std: np.ndarray, **kwargs):
         super().__init__(**kwargs)
-        self._distribution = MultiNormal(mean, cov)
+        self._mean = mean
+        self._std = std
 
-    def _add_sample(self, values) -> None:
-        cov_known = np.diag(np.ones(len(self._distribution)))
-        self._distribution = self._distribution.posterior(values, cov_known)
+    def _add_sample(self, values: np.ndarray) -> None:
+        std_known = np.ones(len(self._mean))
+        self._mean, self._std = uni_normal.posterior(self._mean, self._std, std_known, values)
 
-    @staticmethod
-    def _to_normal(sample: np.ndarray) -> MultiNormal:
-        mean = normal_uni_mean(sample)
-        std = normal_uni_std(sample, corrected=True)
-        return MultiNormal(mean, std=std)
+    def eval_pdf(self, x: np.ndarray) -> float:
+        return uni_normal.pdf(self._mean, self._std, self._estimator.to_loc(x))
 
-    def eval_pdf(self, sample: np.ndarray) -> float:
-        sample_means = sample.mean(axis=0)
-        return self._distribution.pdf(sample_means)
+    def eval_ttest(self, x: np.ndarray) -> float:
+        return uni_normal.test_1sample(self._mean, x)
 
-    def eval_ttest(self, sample: np.ndarray) -> float:
-        return self._distribution.test_1sample(sample)
-
-    def eval_kldivergence(self, sample: np.ndarray) -> float:
-        sample_distribution = self._to_normal(sample)
-        return -self._distribution.kl_divergence(sample_distribution.mean, sample_distribution.cov)
+    @property
+    def parameters(self) -> dict:
+        return {
+            'Location': self._mean,
+            'Scale': self._std
+        }
 
 
 class BayesianUniMine(Mine):
-    _distribution: NormalInverseChiSquared
+    _mean: np.ndarray
+    _std: np.ndarray
+    _kappa: int
+    _nu: int
 
     def __init__(self, mean, std, kappa, nu, **kwargs):
         super().__init__(**kwargs)
-        self._distribution = NormalInverseChiSquared(mean, std, kappa, nu)
+        self._mean = mean
+        self._std = std
+        self._kappa = kappa
+        self._nu = nu
 
-    def _add_sample(self, values) -> None:
-        self._distribution = self._distribution.posterior(values)
+    def _add_sample(self, values: np.ndarray) -> None:
+        self._mean, self._std, self._kappa, self._nu = normal_inverse_chisquared.posterior(
+            self._mean,
+            self._std,
+            self._kappa,
+            self._nu,
+            values
+        )
 
-    def eval_pdf(self, sample: np.ndarray) -> float:
-        sample_means = sample.mean(axis=0)
-        return self._distribution.pdf_predictive(sample_means)
+    def eval_pdf(self, x: np.ndarray) -> float:
+        x_mean = self._estimator.to_loc(x)
+        x_std = self._estimator.to_scale(x)
+        return normal_inverse_chisquared.pdf(self._mean, self._std, self._kappa, self._nu, x_mean, x_std)
+
+    @property
+    def parameters(self) -> dict:
+        return {
+            'Location': self._mean,
+            'Scale': self._std,
+            'Kappa': self._kappa,
+            'Nu': self._nu
+        }
 
 
 if __name__ == '__main__':
