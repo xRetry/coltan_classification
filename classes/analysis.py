@@ -1,11 +1,38 @@
 import numpy as np
 from typing import Callable, List
-from classes.mines import Mine
+from classes.mines import Mine, AggregationMine
 from classes.models import Model
 from classes.dataset import Sample, Dataset
 from classes.parameters import Parameters
-from classes.evaluation import Transformation, Normalization
-from functions.plotting import plot_eval_results, plot_eval_results_2d, plot_progression, plot_mine_evaluation
+from classes.normalizers import Normalization
+from classes.estimators import MLEUniEstimator
+from functions import transformation
+from functions import plotting
+import statsmodels.api as sm
+
+
+class DatasetAnalyser:
+    _dataset: Dataset
+
+    def __init__(self, dataset: Dataset):
+        self._dataset = dataset
+
+    def plot_correlation(self):
+        values = np.row_stack(self._dataset.attributes)
+        plotting.plot_correlation_matrix(values.T, self._dataset.attribute_labels)
+
+    def plot_samples(self, attr_idx: int):
+        plotting.plot_samples(self._dataset.attributes, attr_idx)
+
+    def plot_qq(self, attr_idx:int):
+        plotting.plot_qq(self._dataset.attributes[0], attr_idx=attr_idx)
+
+    def test_normality(self, func_trans: Callable=transformation.none):
+        p_vals_all = np.zeros((len(self._dataset), self._dataset.n_attributes))
+        for i, sample in enumerate(self._dataset):
+            statistic, p_vals = sm.stats.diagnostic.normal_ad(func_trans(sample.attributes))
+            p_vals_all[i, :] = p_vals
+        plotting.plot_norm_test(p_vals_all)
 
 
 class MineAnalyser:
@@ -24,12 +51,12 @@ class MineAnalyser:
         # Build mine
         mine = self._create_mine()
         # Adding samples to mine and collecting parameters
-        distr_params = []
+        mine_params = []
         for sample in samples_mine_selected:
             mine.add_sample(sample)
-            distr_params.append(mine.distribution.parameters)
+            mine_params.append(mine.parameters)
         # Plotting the mine parameters over time
-        plot_progression(distr_params)
+        plotting.plot_progression(mine_params)
 
     def evaluation(self):
         """
@@ -52,7 +79,7 @@ class MineAnalyser:
             eval_values[i] = mine.eval_sample(sample)
             labels[i] = sample.label
         # Plot the result
-        plot_mine_evaluation(eval_values, labels, has_sample)
+        plotting.plot_mine_evaluation(eval_values, labels, has_sample)
 
     @staticmethod
     def _select_mine_samples(dataset: Dataset) -> (List[Sample], str):
@@ -107,7 +134,7 @@ class EvalFuncAnalyser:
             results_all.append(results_func)
 
         labels = [func.__qualname__ for func in eval_func]
-        plot_eval_results(offsets_x, results_all, labels)
+        plotting.plot_eval_results(offsets_x, results_all, labels)
 
     @staticmethod
     def func_analysis_2d(eval_func: Callable, x_limits:tuple=(-5, 5), y_limits:tuple=(-5, 5)):
@@ -132,7 +159,7 @@ class EvalFuncAnalyser:
                 sample_new = self._create_sample(attr_current)
                 results_eval[i, j] = mine.eval_sample(sample_new)
 
-        plot_eval_results_2d(offsets_x, offsets_y, results_eval)
+        plotting.plot_eval_results_2d(offsets_x, offsets_y, results_eval)
 
     @staticmethod
     def _create_mine(eval_func: Callable) -> Mine:
@@ -143,10 +170,11 @@ class EvalFuncAnalyser:
             parameters=Parameters(
                 MineClass=None,
                 func_normalize=Normalization.none,
-                func_transform=Transformation.none,
+                func_transform=transformation.none,
                 func_eval=eval_func,
-                func_loss=Transformation.none,
-                func_selection=Transformation.none
+                func_loss=transformation.none,
+                func_selection=transformation.none,
+                estimator=MLEUniEstimator  # TODO: Make estimator changeable
             )
         )
         return mine
