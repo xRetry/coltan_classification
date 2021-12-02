@@ -2,9 +2,6 @@ import numpy as np
 import pandas as pd
 import os
 from typing import List, Iterator, Optional, Callable
-import statsmodels.api as sm
-import functions.plotting
-from classes.evaluation import Transformation
 
 
 class Sample:
@@ -14,12 +11,15 @@ class Sample:
     coordinates: np.ndarray
     attributes: np.ndarray
 
-    def __init__(self, attributes: np.ndarray, label: int, coordinates: np.ndarray, sample_id: int, mine_id: str):
+    def __init__(self, attributes: np.ndarray, label: int=0, coordinates: np.ndarray=np.zeros(3), sample_id: int=0, mine_id: str=''):
         self.label = label
         self.coordinates = coordinates
         self.attributes = attributes
         self.sample_id = sample_id
         self.mine_id = mine_id
+
+    def append(self, attr_values: np.ndarray):
+        self.attributes = np.row_stack([self.attributes, attr_values])
 
     @property
     def n_attributes(self) -> int:
@@ -103,26 +103,13 @@ class Dataset:
 
         return list(zip(samples_train, samples_test))
 
-    def plot_correlation(self):
-        values = np.row_stack(self.attributes)
-        functions.plotting.plot_correlation_matrix(values.T, self._attr_labels)
-
-    def plot_samples(self, attr_idx: int):
-        functions.plotting.plot_samples(self.attributes, attr_idx)
-
-    def plot_qq(self, attr_idx:int):
-        functions.plotting.plot_qq(self.attributes[0], attr_idx=attr_idx)
-
-    def test_normality(self, func_trans: Callable=Transformation.none):
-        p_vals_all = np.zeros((len(self), self.n_attributes))
-        for i, sample in enumerate(self):
-            statistic, p_vals = sm.stats.diagnostic.normal_ad(func_trans(sample.attributes))
-            p_vals_all[i, :] = p_vals
-        functions.plotting.plot_norm_test(p_vals_all)
-
     @property
     def attributes(self) -> List[np.ndarray]:
         return [sample.attributes for sample in self._samples]
+
+    @property
+    def attribute_labels(self) -> np.ndarray:
+        return self._attr_labels
 
     @property
     def n_attributes(self) -> int:
