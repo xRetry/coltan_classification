@@ -122,7 +122,7 @@ class AggregationMine(Mine):
     def eval_pdf(self, x: np.ndarray) -> float:
         loc = self._estimator.to_loc(self._parameters.attributes)
         scale = self._estimator.to_scale(self._parameters.attributes)
-        return uni_normal.pdf(loc, scale, x)
+        return uni_normal.pdf(loc, scale, self._estimator.to_loc(x))
 
     def eval_kldivergence(self, x: np.ndarray) -> float:
         raise NotImplementedError()
@@ -134,6 +134,32 @@ class AggregationMine(Mine):
     def eval_mannwhitneyu(self, x: np.ndarray) -> float:
         #return self._distribution.test_mannwhitneyu(sample)
         raise NotImplementedError()
+
+    @property
+    def parameters(self) -> dict:
+        return {
+            'Location': self._estimator.to_loc(self._parameters.attributes),
+            'Scale': self._estimator.to_scale(self._parameters.attributes)
+        }
+
+
+class AggregationMultiMine(Mine):
+    _parameters: Optional[Sample]
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._parameters = None
+
+    def _add_sample(self, attr_values: np.ndarray) -> None:
+        if self._parameters is None:
+            self._parameters = Sample(attributes=attr_values)
+        else:
+            self._parameters.append(attr_values)
+
+    def eval_pdf(self, x: np.ndarray) -> float:
+        loc = self._estimator.to_loc(self._parameters.attributes)
+        scale = self._estimator.to_scale(self._parameters.attributes)
+        return multi_normal.pdf(loc, scale, self._estimator.to_loc(x))
 
     @property
     def parameters(self) -> dict:
