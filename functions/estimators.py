@@ -16,13 +16,13 @@ def std(attr_values: np.ndarray, corrected=True, robust=False) -> np.ndarray:
         loc = median(attr_values)
 
     n = len(attr_values)
-    if corrected:
+    if corrected and n > 1:
         n -= 1
     return np.sqrt(1 / n * np.sum(np.power((attr_values - loc), 2), axis=0))
 
 
 def cov(attr_values: np.ndarray):
-    return np.cov(attr_values)
+    return np.cov(attr_values.T)
 
 
 if __name__ == '__main__':
