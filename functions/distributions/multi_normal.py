@@ -1,16 +1,20 @@
 import numpy as np
+import scipy.stats
+from functions.decorators import verification
 
 
+@verification('a1', 'aa', 'a1')
 def pdf(mean: np.ndarray, cov: np.ndarray, x: np.ndarray) -> float:
     if not np.any(np.diag(cov) == 0):
         n = len(mean)
         det = np.linalg.det(cov)
         norm_const = 1 / (np.power(2 * np.pi, n / 2) * np.power(det, 1 / 2))
-        z = norm_const * np.exp(-1 / 2 * (x - mean).T @ np.linalg.inv(cov) @ (x - mean))
+        z = norm_const * np.exp(-1 / 2 * (x - mean).T @ np.linalg.inv(cov) @ (x - mean))  # TODO: Figure out why underflow occurs
         return z[0][0]
     return np.nan
 
 
+@verification('a1', 'aa', 'ba', 'aa')
 def posterior(mean: np.ndarray, cov:np.ndarray, x: np.ndarray, cov_known: np.ndarray) -> (np.ndarray, np.ndarray):
     mean_prior = mean
     cov_prior = cov
@@ -28,6 +32,7 @@ def posterior(mean: np.ndarray, cov:np.ndarray, x: np.ndarray, cov_known: np.nda
     return np.diag(mu_post)[:, None], cov_post
 
 
+@verification('a1', 'aa', 'a1', 'aa')
 def kl_divergence(mean1: np.ndarray, cov1: np.ndarray, mean2: np.ndarray, cov2: np.ndarray) -> float:
     # Removing zeros in diagonal of covariance matrix
     is_not_zero = (np.diag(cov1) != 0) & (np.diag(cov2) != 0)
