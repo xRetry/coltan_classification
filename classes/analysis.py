@@ -214,7 +214,7 @@ class EvalFuncAnalyser:
                 eval_results[s, m] = mine.eval_sample(sample)
             x_vals[s, :] = attr_orig[:, 0].mean() * multipliers
 
-        plot_eval_results(x_vals, eval_results)
+        plotting.plot_eval_results(x_vals, eval_results)
 
 
 class ModelAnalyser:
