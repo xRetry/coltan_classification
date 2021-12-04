@@ -48,7 +48,7 @@ class RobustUniEstimator(Estimator):
 class MLEMultiEstimator(Estimator):
     @staticmethod
     def to_loc(values: np.ndarray) -> np.ndarray:
-        return estimators.mean(values)
+        return estimators.mean(values)[:, None]
 
     @staticmethod
     def to_scale(values: np.ndarray) -> np.ndarray:
