@@ -1,14 +1,9 @@
 import numpy as np
 import scipy.stats
+from functions.decorators import verification
 
 
-def pdf(mean: np.ndarray, std: np.ndarray, x: np.ndarray):
-    norm = np.divide(1, (std * np.sqrt(2 * np.pi)), out=np.zeros_like(std) * np.nan, where=std != 0)
-    exponent = np.divide(-np.power(x - mean, 2), (2 * np.power(std, 2)), out=np.zeros_like(x) * np.nan,
-                         where=std != 0)
-    return norm * np.exp(exponent)
-
-
+@verification('a', 'a', 'a', 'ba')
 def posterior(mu_prior, sigma_prior, sigma_known, x):
     """
     Calculates the posterior for known sigma.
@@ -20,7 +15,22 @@ def posterior(mu_prior, sigma_prior, sigma_known, x):
     return mu, sigma
 
 
-def test_1sample(mean, x: np.ndarray):
+@verification('a', 'a', 'a')
+def pdf(mean: np.ndarray, std: np.ndarray, x: np.ndarray) -> float:
+    """
+    Calculates the value of the normal pdf function at given locations.
+    """
+    norm = np.divide(1, (std * np.sqrt(2 * np.pi)), out=np.zeros_like(std) * np.nan, where=std != 0)
+    exponent = np.divide(-np.power(x - mean, 2), (2 * np.power(std, 2)), out=np.zeros_like(x) * np.nan,
+                         where=std != 0)
+    return np.product(norm * np.exp(exponent))
+
+
+@verification('a', 'ba')
+def test_1sample(mean: np.ndarray, x: np.ndarray) -> float:
+    """
+    Performs a 1 sample t-test.
+    """
     attr_probabilities = scipy.stats.ttest_1samp(x, mean.T)
     return np.product(attr_probabilities[1])
 
