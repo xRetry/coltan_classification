@@ -23,6 +23,9 @@ def verification(*shapes):
             # Checking argument types and shapes
             sizes = {}
             for i in range(n_args):
+                # Skip if None
+                if shapes[i] is None:
+                    continue
                 # Check if argument should be numeric
                 if shapes[i] == '':
                     if not isinstance(kwargs[arg_names[i]], (int, float)):
