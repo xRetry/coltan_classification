@@ -1,9 +1,11 @@
 import numpy as np
 import scipy.special
 import scipy.stats
+from functions.decorators import verification
 
 
-def posterior(mean: np.ndarray, prec: np.ndarray, kappa: np.ndarray, nu: np.ndarray, x: np.ndarray) \
+@verification('a1', 'aa', '', '', 'ba')
+def posterior(mean: np.ndarray, prec: np.ndarray, kappa: int, nu: int, x: np.ndarray) \
         -> (np.ndarray, np.ndarray, np.ndarray, np.ndarray):
     """
     Calculates the parameters of the posterior given the new data.
@@ -22,7 +24,8 @@ def posterior(mean: np.ndarray, prec: np.ndarray, kappa: np.ndarray, nu: np.ndar
     return mean_p, prec_p, kappa_p, nu_p
 
 
-def pdf(mean: np.ndarray, prec: np.ndarray, kappa: np.ndarray, nu: np.ndarray, x_mean: np.ndarray,
+@verification('a1', 'aa', '', '', 'a1', 'aa')
+def pdf(mean: np.ndarray, prec: np.ndarray, kappa: int, nu: int, x_mean: np.ndarray,
         x_cov: np.ndarray) -> float:
     """
     Computes the pdf value for provided mean and cov.
@@ -32,13 +35,16 @@ def pdf(mean: np.ndarray, prec: np.ndarray, kappa: np.ndarray, nu: np.ndarray, x
     cov_det = np.linalg.det(x_cov)
     cov_inv = np.linalg.inv(x_cov)
     mean_diff = (x_mean - mean)
-    Z = (np.power(2, nu * d / 2) * scipy.special.gamma(nu / 2) * np.power(2 * np.pi / kappa, d / 2)) / np.power(lam_det,
-                                                                                                                nu / 2)
-    return 1 / Z * np.power(cov_det, -((nu + d) / 2 + 1)) * np.exp(
-        -1 / 2 * np.trace(prec @ cov_inv) - kappa / 2 * mean_diff.T @ cov_inv @ mean_diff)
+    Z = (np.power(2, nu * d / 2) * scipy.special.gamma(nu / 2) * np.power(2 * np.pi / kappa, d / 2)) /\
+        np.power(lam_det, nu / 2)  # TODO: Fix underflow
+    p = 1 / Z * np.power(cov_det, -((nu + d) / 2 + 1)) * np.exp(
+        -1 / 2 * np.trace(prec @ cov_inv) - kappa / 2 * mean_diff.T @ cov_inv @ mean_diff
+    )
+    return p
 
 
-def pdf_predictive(mean: np.ndarray, prec: np.ndarray, kappa: np.ndarray, nu: np.ndarray, x: np.ndarray) -> float:
+@verification('a1', 'aa', '', '', 'a1')
+def pdf_predictive(mean: np.ndarray, prec: np.ndarray, kappa: int, nu: int, x: np.ndarray) -> float:  # TODO: Check correct output
     """
     Computes the pdf value for a new sample.
     """
