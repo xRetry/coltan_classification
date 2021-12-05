@@ -1,6 +1,8 @@
 import numpy as np
+from functions.decorators import verification
 
 
+@verification('ba')
 def none(x):
     """
     Applies no transformation to the input.
@@ -8,23 +10,15 @@ def none(x):
     return x
 
 
-def log(x: np.ndarray or list, base_10:bool=False) -> np.ndarray or list:
-    is_list = True
-    if not isinstance(x, list):
-        is_list = False
-        x = [x]
-    for i in range(len(x)):
-        x[i] = np.array(x[i])
-        if base_10:
-            x[i] = np.log10(x[i], out=np.ones_like(x[i]) * -20, where=x[i] > 0)
-        else:
-            x[i] = np.log(x[i], out=np.ones_like(x[i])*-20, where=x[i] > 0)  # TODO: Find appropriate value for negative inputs
-    if is_list:
-        return x
-    return x[0]
+@verification('ba', None)
+def log(x: np.ndarray, base_10:bool=False) -> np.ndarray or list:
+    if base_10:
+        return np.log10(x, out=np.ones_like(x) * -20, where=x > 0)
+    return np.log(x, out=np.ones_like(x)*-20, where=x > 0)  # TODO: Find appropriate value for negative inputs
 
 
-def log10(x: np.ndarray or list):
+@verification('ba')
+def log10(x: np.ndarray):
     return log(x, base_10=True)
 
 
