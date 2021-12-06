@@ -27,22 +27,26 @@ def test_norm2(x1: np.ndarray, x2: np.ndarray) -> float:
     return -float(np.linalg.norm(x1 - x2, 2))
 
 
-@verification('a', 'a')
+@verification('ba', 'ca')
 def test_ranksums(x1: np.ndarray, x2: np.ndarray) -> float:
     """
     Performs a ranksums test between two non-parametric distributions.
     """
-    test_result = scipy.stats.ranksums(x1, x2)
-    return test_result[1]
+    test_results = np.zeros(x1[0])
+    for i in range(len(x1[0])):
+        test_results[i] = scipy.stats.ranksums(x1[:, i], x2[:, i])[1]
+    return np.product(test_results)
 
 
-@verification('a', 'a')
+@verification('ba', 'ca')
 def test_mannwhitneyu(x1: np.ndarray, x2: np.ndarray) -> float:
     """
     Performs a mann-whitney-u test between two non-parametric distributions.
     """
-    test_result = scipy.stats.mannwhitneyu(x1, x2)
-    return test_result[1]
+    test_results = np.zeros(x1[0])
+    for i in range(len(x1[0])):
+        test_results[i] = scipy.stats.mannwhitneyu(x1[:, i], x2[:, i])[1]
+    return np.product(test_results)
 
 
 if __name__ == '__main__':
