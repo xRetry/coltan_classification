@@ -58,7 +58,6 @@ class Mine(abc.ABC):
 
 
 ''' 
-    
     SUBCLASSES
 '''
 
@@ -124,16 +123,11 @@ class AggregationMine(Mine):
         scale = self._estimator.to_scale(self._parameters.attributes)
         return uni_normal.pdf(loc, scale, self._estimator.to_loc(x))
 
-    def eval_kldivergence(self, x: np.ndarray) -> float:
-        raise NotImplementedError()
-
     def eval_ranksums(self, x: np.ndarray) -> float:
-        #return NonParametric.test_ranksums(self._parameters.mean(), x)
-        raise NotImplementedError()
+        return non_parametric.test_ranksums(self._parameters.attributes, x)
 
     def eval_mannwhitneyu(self, x: np.ndarray) -> float:
-        #return self._distribution.test_mannwhitneyu(sample)
-        raise NotImplementedError()
+        return non_parametric.test_mannwhitneyu(self._parameters.attributes, x)
 
     @property
     def parameters(self) -> dict:
@@ -197,22 +191,22 @@ class BayesianSimpleMine(Mine):
 
 
 class BayesianUniMine(Mine):
-    _mean: np.ndarray
-    _std: np.ndarray
+    _loc: np.ndarray
+    _scale: np.ndarray
     _kappa: int
     _nu: int
 
-    def __init__(self, mean, std, kappa, nu, **kwargs):
+    def __init__(self, loc, scale, kappa, nu, **kwargs):
         super().__init__(**kwargs)
-        self._mean = mean
-        self._std = std
+        self._loc = loc
+        self._scale = scale
         self._kappa = kappa
         self._nu = nu
 
     def _add_sample(self, values: np.ndarray) -> None:
-        self._mean, self._std, self._kappa, self._nu = normal_inverse_chisquared.posterior(
-            self._mean,
-            self._std,
+        self._loc, self._scale, self._kappa, self._nu = normal_inverse_chisquared.posterior(
+            self._loc,
+            self._scale,
             self._kappa,
             self._nu,
             values
@@ -221,16 +215,40 @@ class BayesianUniMine(Mine):
     def eval_pdf(self, x: np.ndarray) -> float:
         x_mean = self._estimator.to_loc(x)
         x_std = self._estimator.to_scale(x)
-        return normal_inverse_chisquared.pdf(self._mean, self._std, self._kappa, self._nu, x_mean, x_std)
+        return normal_inverse_chisquared.pdf(self._loc, self._scale, self._kappa, self._nu, x_mean, x_std)
+
+    def eval_pdf_predictive(self, x: np.ndarray) -> float:
+        x_loc = self._estimator.to_loc(x)
+        return normal_inverse_chisquared.pdf_predictive(self._loc, self._scale, self._kappa, self._nu, x_loc)
 
     @property
     def parameters(self) -> dict:
         return {
-            'Location': self._mean,
-            'Scale': self._std,
+            'Location': self._loc,
+            'Scale': self._scale,
             'Kappa': self._kappa,
             'Nu': self._nu
         }
+
+
+class BayesianMultiMine(BayesianUniMine):  # TODO: Deal with values with 0 std
+    def _add_sample(self, values: np.ndarray) -> None:
+        self._loc, self._scale, self._kappa, self._nu = normal_inverse_wishart.posterior(
+            self._loc,
+            self._scale,
+            self._kappa,
+            self._nu,
+            values
+        )
+
+    def eval_pdf(self, x: np.ndarray) -> float:
+        x_mean = self._estimator.to_loc(x)
+        x_prec = self._estimator.to_scale(x)
+        return normal_inverse_wishart.pdf(self._loc, self._scale, self._kappa, self._nu, x_mean, x_prec)
+
+    def eval_pdf_predictive(self, x: np.ndarray) -> float:
+        x_loc = self._estimator.to_loc(x)
+        return normal_inverse_wishart.pdf_predictive(self._loc, self._scale, self._kappa, self._nu, x_loc)
 
 
 if __name__ == '__main__':
