@@ -4,6 +4,7 @@ from functions.decorators import verification
 
 @verification('a', 'a')
 def mine(eval_results: np.ndarray, labels: np.ndarray) -> int:
+    eval_results[eval_results == np.inf] = np.nan
     if np.all(np.isnan(eval_results)):
         return np.nan
     idx = np.nanargmax(eval_results)
@@ -12,6 +13,7 @@ def mine(eval_results: np.ndarray, labels: np.ndarray) -> int:
 
 @verification('a', 'a')
 def label(eval_results: np.ndarray, labels: np.ndarray) -> int:
+    eval_results[eval_results == np.inf] = np.nan
     sum_full = np.nansum(eval_results)
     sum_pos = np.nansum(eval_results[labels == 1])
     if sum_full == 0:
