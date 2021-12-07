@@ -5,6 +5,7 @@ from classes.dataset import Sample
 from functions.distributions import uni_normal, multi_normal, normal_inverse_wishart, non_parametric, normal_inverse_chisquared
 from classes.parameters import Parameters
 from classes.estimators import Estimator
+from classes.normalizers import Normalization
 from typing import List, Optional, Callable, Iterable
 
 
@@ -20,27 +21,25 @@ class Mine(abc.ABC):
     _func_transform: Callable
     _func_eval: Callable
     _estimator: Estimator
-    _normalize_constant: Optional[np.ndarray]
 
     def __init__(self, coordinates: Iterable, status: int, parameters: Parameters):
         self._coordinates = np.array(coordinates)
         self._status = status
-        self._func_normalize = parameters.func_normalize
+        name_func_normalize = parameters.func_normalize.__name__
+        self._func_normalize = Normalization().__getattribute__(name_func_normalize)
         self._func_transform = parameters.func_transform
         self._func_eval = parameters.func_eval
         self._estimator = parameters.estimator
 
-        self._normalize_constant = None
-
     def add_sample(self, sample: Sample) -> None:
-        self._add_sample(self._func_transform(self._func_normalize(self, sample.attributes)))
+        self._add_sample(self._func_normalize(self._func_transform(sample.attributes)))
 
     @abc.abstractmethod
     def _add_sample(self, values) -> None:
         pass
 
     def eval_sample(self, sample: Sample) -> float:
-        attr_values = self._func_transform(self._func_normalize(self, sample.attributes))
+        attr_values = self._func_normalize(self._func_transform(sample.attributes))
         return self._func_eval(self, attr_values)
 
     @property
