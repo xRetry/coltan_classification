@@ -1,4 +1,7 @@
 import numpy as np
+import scipy.stats
+import statsmodels.api as sm
+
 from functions.decorators import verification
 
 
@@ -7,13 +10,8 @@ def pdf(mean: np.ndarray, cov: np.ndarray, x: np.ndarray) -> float:
     """
     Computes the pdf of a multivariate normal at the specified location.
     """
-    if not np.any(np.diag(cov) == 0):
-        n = len(mean)
-        det = np.linalg.det(cov)
-        norm_const = 1 / (np.power(2 * np.pi, n / 2) * np.power(det, 1 / 2))
-        p = norm_const * np.exp(-1 / 2 * (x - mean).T @ np.linalg.inv(cov) @ (x - mean))  # TODO: Figure out why underflow occurs
-        return p[0][0]
-    return np.nan
+    p = scipy.stats.multivariate_normal.pdf(x.flatten(), mean.flatten(), cov, allow_singular=True)
+    return p
 
 
 @verification('a1', 'aa', 'ba', 'aa')
@@ -46,6 +44,21 @@ def kl_divergence(mean1: np.ndarray, cov1: np.ndarray, mean2: np.ndarray, cov2: 
     return 1 / 2 * (np.log(np.linalg.det(cov2) / np.linalg.det(cov1)) - n +
                     np.trace(np.linalg.inv(cov2) @ cov1) +
                     (mean2 - mean1).T @ np.linalg.inv(cov2) @ (mean2 - mean1))[0][0]
+
+
+@verification('a1', 'ba')
+def ttest_1sample(mean: np.ndarray, x: np.ndarray) -> float:  # TODO: Check computation
+    x = np.asarray(x)
+    nobs, k_vars = x.shape
+    mean_x = x.mean(0)
+    cov = np.cov(x, rowvar=False, ddof=1)
+    diff = mean_x - mean.flatten()
+    t2 = nobs * diff.dot(np.linalg.solve(cov, diff))
+    factor = (nobs - 1) * k_vars / (nobs - k_vars)
+    statistic = t2 / factor
+    df = (k_vars, nobs - k_vars)
+    pvalue = scipy.stats.f.sf(statistic, df[0], df[1])
+    return pvalue
 
 
 if __name__ == '__main__':
