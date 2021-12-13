@@ -104,8 +104,8 @@ class Dataset:
         return list(zip(samples_train, samples_test))
 
     @property
-    def attributes(self) -> List[np.ndarray]:
-        return [sample.attributes for sample in self._samples]
+    def attributes(self) -> np.ndarray:
+        return np.array([sample.attributes for sample in self._samples])
 
     @property
     def attribute_labels(self) -> np.ndarray:
