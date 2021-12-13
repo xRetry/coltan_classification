@@ -220,6 +220,9 @@ class BayesianUniMine(Mine):
         x_loc = self._estimator.to_loc(x)
         return normal_inverse_chisquared.pdf_predictive(self._loc, self._scale, self._kappa, self._nu, x_loc)
 
+    def eval_ttest(self, x: np.ndarray) -> float:
+        return uni_normal.test_1sample(self._loc, x)
+
     @property
     def parameters(self) -> dict:
         return {
@@ -248,6 +251,9 @@ class BayesianMultiMine(BayesianUniMine):  # TODO: Deal with values with 0 std
     def eval_pdf_predictive(self, x: np.ndarray) -> float:
         x_loc = self._estimator.to_loc(x)
         return normal_inverse_wishart.pdf_predictive(self._loc, self._scale, self._kappa, self._nu, x_loc)
+
+    def eval_ttest(self, x: np.ndarray) -> float:
+        return multi_normal.ttest_1sample(self._loc, x)
 
 
 if __name__ == '__main__':
