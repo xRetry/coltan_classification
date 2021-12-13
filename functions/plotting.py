@@ -29,16 +29,44 @@ def plot_norm_test(p_vals: np.ndarray):
     plt.show()
 
 
-def plot_samples(attribute_values: List[np.ndarray], attr_idx: int, ax: plt.Subplot = None):
-    has_parent = ax is not None
-    if not has_parent:
-        ax = plt.subplot()
+def plot_samples(attr_values: np.ndarray, attr_idx: int or Iterable[int], attr_labels: Optional[np.ndarray]=None):
+    """
+    Plots histograms of attribute values in a grid.
+    """
+    # Convert attribute index to list if is a single index.
+    if isinstance(attr_idx, int):
+        attr_idx = [attr_idx]
+    # Determine sizes and grid dimensions
+    n_samples = len(attr_values)
+    n_attr = len(attr_idx)
+    n_cols = 10
+    n_rows = int(np.ceil(n_samples / n_cols))
+    # Defining colormap
+    colors = plt.get_cmap('tab10')(range(n_attr))
+    # Creating plot
+    fig, axs = plt.subplots(nrows=n_rows * n_attr, ncols=n_cols, figsize=(n_cols * 2, n_rows * n_attr * 2))
+    # Iterating through attributes
+    for k, a in enumerate(attr_idx):
+        # Iterating through samples
+        n = 0
+        for i in range(n_rows):
+            for idx_col in range(n_cols):
+                idx_row = k * n_rows + i
+                # Removing x and y ticks
+                axs[idx_row, idx_col].set_xticks([])
+                axs[idx_row, idx_col].set_yticks([])
+                # Skip if no more samples left
+                if n >= n_samples:
+                    continue
+                # Creating histogram
+                axs[idx_row, idx_col].hist(attr_values[n][:, a], 20, density=True, facecolor=colors[k])
+                n += 1
+                # Adding y labels if provided
+                if attr_values is not None and idx_col == 0:
+                    axs[idx_row, idx_col].set_ylabel(attr_labels[k])
 
-    for sample_attributes in attribute_values:
-        ax.hist(sample_attributes[:, attr_idx], 20, density=True, histtype='step', facecolor='g', alpha=0.75)
-
-    if not has_parent:
-        plt.show()
+    plt.tight_layout()
+    plt.show()
 
 
 def plot_locations(mines: dict):

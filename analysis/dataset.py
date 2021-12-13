@@ -2,7 +2,7 @@ import numpy as np
 from classes.dataset import Dataset
 from functions import plotting
 from functions import transformation
-from typing import Callable
+from typing import Callable, Iterable
 import statsmodels.api as sm
 
 
@@ -16,8 +16,10 @@ class DatasetAnalyser:
         values = np.row_stack(self._dataset.attributes)
         plotting.plot_correlation_matrix(values.T, self._dataset.attribute_labels)
 
-    def plot_samples(self, attr_idx: int):
-        plotting.plot_samples(self._dataset.attributes, attr_idx)
+    def plot_samples(self, attr_idx: int or Iterable[int], sample_idx: int or Iterable[int]):
+        attr_values = self._dataset.attributes[sample_idx]
+        attr_labels = self._dataset.attribute_labels
+        plotting.plot_samples(attr_values, attr_idx, attr_labels)
 
     def plot_qq(self, attr_idx:int):
         plotting.plot_qq(self._dataset.attributes[0], attr_idx=attr_idx)
