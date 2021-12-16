@@ -4,7 +4,7 @@ from classes.mines import Mine
 from classes.parameters import Parameters
 from classes.dataset import Sample, Dataset
 from classes.normalizers import Normalization
-from classes.estimators import MLEUniEstimator
+from classes.estimators import MeanUniEstimator
 from typing import List, Callable
 
 
@@ -76,7 +76,7 @@ class EvalFuncAnalyser:
                 func_eval=eval_func,
                 func_loss=transformation.none,
                 func_selection=transformation.none,
-                estimator=MLEUniEstimator
+                estimator=MeanUniEstimator
             )
         )
         return mine
