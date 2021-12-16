@@ -1,5 +1,6 @@
 import numpy as np
 from functions.decorators import verification
+from typing import Optional
 
 
 @verification('ba')
@@ -12,12 +13,21 @@ def median(attr_values: np.ndarray) -> np.ndarray:
     return np.median(attr_values, axis=0)
 
 
-@verification('ba', None, None)
-def std(attr_values: np.ndarray, corrected=True, robust=False) -> np.ndarray:
-    if robust:
-        loc = median(attr_values)
-    else:
-        loc = median(attr_values)
+@verification('ba')
+def hodges_lehmann(attr_values: np.ndarray) -> np.ndarray:
+    n, n_attr = attr_values.shape
+    tri_mask = np.tril_indices(n)
+    loc = np.zeros(n_attr)
+    for a in range(n_attr):
+        means = (attr_values[:, a] + attr_values[:, a][:, None]) / 2
+        loc[a] = np.median(means[tri_mask])
+    return loc
+
+
+@verification('ba', None, )
+def std(attr_values: np.ndarray, corrected=True, loc: Optional[np.ndarray]=None) -> np.ndarray:
+    if loc is None:
+        loc = mean(attr_values)
 
     n = len(attr_values)
     if corrected and n > 1:
