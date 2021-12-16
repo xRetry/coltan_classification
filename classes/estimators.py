@@ -25,7 +25,7 @@ class Estimator(abc.ABC):
 '''
 
 
-class MLEUniEstimator(Estimator):
+class MeanUniEstimator(Estimator):
     @staticmethod
     def to_loc(values: np.ndarray) -> np.ndarray:
         return estimators.mean(values)
@@ -35,17 +35,27 @@ class MLEUniEstimator(Estimator):
         return estimators.std(values)
 
 
-class RobustUniEstimator(Estimator):
+class MedianUniEstimator(Estimator):
     @staticmethod
     def to_loc(values: np.ndarray) -> np.ndarray:
         return estimators.median(values)
 
     @staticmethod
     def to_scale(values: np.ndarray) -> np.ndarray:
-        return estimators.std(values, robust=True)
+        return estimators.std(values, loc=MedianUniEstimator.to_loc(values))
 
 
-class MLEMultiEstimator(Estimator):
+class HLUniEstimator(Estimator):
+    @staticmethod
+    def to_loc(values: np.ndarray) -> np.ndarray:
+        return estimators.hodges_lehmann(values)
+
+    @staticmethod
+    def to_scale(values: np.ndarray) -> np.ndarray:
+        return estimators.std(values, loc=HLUniEstimator.to_loc(values))
+
+
+class MeanMultiEstimator(Estimator):
     @staticmethod
     def to_loc(values: np.ndarray) -> np.ndarray:
         return estimators.mean(values)[:, None]
