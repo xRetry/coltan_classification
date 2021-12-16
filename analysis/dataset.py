@@ -2,8 +2,9 @@ import numpy as np
 from classes.dataset import Dataset
 from functions import plotting
 from functions import transformation
-from typing import Callable, Iterable
+from typing import Callable, Iterable, Optional
 import statsmodels.api as sm
+from sklearn.decomposition import PCA
 
 
 class DatasetAnalyser:
@@ -30,6 +31,29 @@ class DatasetAnalyser:
             statistic, p_vals = sm.stats.diagnostic.normal_ad(func_trans(sample.attributes))
             p_vals_all[i, :] = p_vals
         plotting.plot_norm_test(p_vals_all)
+
+    def pca_ratio(self, func_trans: Callable=transformation.none, n_components: Optional[int]=None):
+        """
+        Plots the explained variance ratio for a PCA.
+        """
+        # Stack values of all samples on top of each other
+        data = func_trans(np.row_stack(self._dataset.attributes))
+        # Create PCA model
+        pca = PCA(n_components=n_components)
+        pca.fit(data)
+        # Plotting variance ratio
+        plotting.plot_pca_ratio(pca.explained_variance_ratio_)
+
+    def pca(self, func_trans: Callable=transformation.none):
+        """
+        Plots the first two principal components.
+        """
+        # Stack values of all samples on top of each other
+        data = func_trans(np.row_stack(self._dataset.attributes))
+        # Compute transformed data
+        data_trans = PCA(n_components=2).fit_transform(data)
+        # Plot transformed data
+        plotting.plot_pca(data_trans[:, 0], data_trans[:, 1], self._dataset.labels)
 
 
 if __name__ == '__main__':

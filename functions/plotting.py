@@ -69,6 +69,29 @@ def plot_samples(attr_values: np.ndarray, attr_idx: int or Iterable[int], attr_l
     plt.show()
 
 
+def plot_pca_ratio(variance_ratio: np.ndarray):
+    plt.plot(range(len(variance_ratio)), variance_ratio)
+    plt.show()
+
+
+def plot_pca(pc1: np.ndarray, pc2: np.ndarray, labels):
+    """
+    Plots the first two principal components, color-coded by labels.
+    """
+    # Creating mask for positive label
+    is_pos = labels == 1
+    # Plotting points with positive label
+    plt.scatter(pc1[is_pos], pc2[is_pos], c='g')
+    # Plotting points with negative label
+    plt.scatter(pc1[~is_pos], pc2[~is_pos], c='r')
+    # Adding labels
+    plt.xlabel('PC 1')
+    plt.ylabel('PC 2')
+    # Showing plot
+    plt.tight_layout()
+    plt.show()
+
+
 def plot_locations(mines: dict):
     xyz = np.array([m.coordinates for m in mines.values()])
 
