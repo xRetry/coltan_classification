@@ -49,5 +49,14 @@ def test_mannwhitneyu(x1: np.ndarray, x2: np.ndarray) -> float:
     return np.product(test_results)
 
 
+@verification('a', 'a', None, None)
+def test_exponential(x1: np.ndarray, x2: np.ndarray, exponent: float=2, scale: float=1) -> float:
+    """
+    Generic exponential kernel with adjustable parameters for shape and scale.
+    """
+    evals = np.exp(-np.power(np.abs(x1 - x2), exponent) * scale)
+    return np.product(evals)
+
+
 if __name__ == '__main__':
     pass

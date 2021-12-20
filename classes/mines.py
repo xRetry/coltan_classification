@@ -20,6 +20,7 @@ class Mine(abc.ABC):
     _func_normalize: Callable
     _func_transform: Callable
     _func_eval: Callable
+    _eval_args: dict
     _estimator: Estimator
 
     def __init__(self, coordinates: Iterable, status: int, parameters: Parameters):
@@ -29,6 +30,7 @@ class Mine(abc.ABC):
         self._func_normalize = Normalization().__getattribute__(name_func_normalize)
         self._func_transform = parameters.func_transform
         self._func_eval = parameters.func_eval
+        self._eval_args = parameters.eval_args
         self._estimator = parameters.estimator
 
     def add_sample(self, sample: Sample) -> None:
@@ -40,7 +42,7 @@ class Mine(abc.ABC):
 
     def eval_sample(self, sample: Sample) -> float:
         attr_values = self._func_normalize(self._func_transform(sample.attributes))
-        return self._func_eval(self, attr_values)
+        return self._func_eval(self, attr_values, **self._eval_args)
 
     @property
     def coordinates(self) -> np.ndarray:
@@ -112,6 +114,10 @@ class AggregationMine(Mine):
     def eval_norm2(self, x: np.ndarray) -> float:
         loc = self._estimator.to_loc(self._parameters.attributes)
         return non_parametric.test_norm2(loc, self._estimator.to_loc(x))
+
+    def eval_exponential(self, x: np.ndarray, exponent: float=2, scale: float=1) -> float:
+        loc = self._estimator.to_loc(self._parameters.attributes)
+        return non_parametric.test_exponential(loc, self._estimator.to_loc(x), exponent, scale)
 
     def eval_ttest(self, x: np.ndarray) -> float:
         loc = self._estimator.to_loc(self._parameters.attributes)
