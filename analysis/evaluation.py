@@ -1,6 +1,6 @@
 import numpy as np
 from functions import plotting, transformation
-from classes.mines import Mine
+from classes.mines import Mine, AggregationMine
 from classes.parameters import Parameters
 from classes.dataset import Sample, Dataset
 from classes.normalizers import Normalization
@@ -35,7 +35,6 @@ class EvalFuncAnalyser:
             if not isinstance(kwargs, list):
                 kwargs = [kwargs]
             # Iterate through function arguments
-            y_list = []
             for kw in kwargs:
                 y = np.zeros_like(x1_mesh)
                 for i in range(x1_mesh.shape[0]):
@@ -47,17 +46,70 @@ class EvalFuncAnalyser:
                         ])
                         # Evaluate function
                         y[i, j] = func(loc, x_shifted, **kw)
-                y_list.append(y)
-            # Adding to result
-            results[func.__qualname__] = {
-                'y': y_list,
-                'kwargs': kwargs
-            }
+                # Adding to result
+                key = '{}({})'.format(func.__qualname__, kwargs)
+                results[key] = y
         # Plotting result
-        plotting.plot_eval_results(x1_mesh, x2_mesh, results)
+        plotting.plot_eval_result(x1_mesh, x2_mesh, results)
+
+    @staticmethod
+    def mine_analysis(eval_func: Callable or List[Callable], x1_range: Tuple[float, float]=(-3, 3),
+                      x2_range: Tuple[float, float]=(-3, 3), std: float=1, n_train: int=3):
+        """
+        Shows the shape of an evaluation functions used in mines. Samples are generated from a normal distribution.
+        """
+        # Wrap in list if single function
+        if not isinstance(eval_func, list):
+            eval_func = [eval_func]
+        # Size of a sample
+        n_sample = 20
+        # Creating training samples
+        samples_train = []
+        for i in range(n_train):
+            attr_train = np.array([
+                np.random.normal(loc=0, scale=std, size=n_sample),
+                np.random.normal(loc=0, scale=std, size=n_sample)
+            ])
+            samples_train.append(EvalFuncAnalyser._create_sample(attr_train.T))
+        # Creating test sample
+        attr_test = np.array([
+            np.random.normal(loc=0, scale=std, size=n_sample),
+            np.random.normal(loc=0, scale=std, size=n_sample)
+        ])
+        # Creating offset mesh
+        x1_offset = np.linspace(*x1_range, 250)
+        x2_offset = np.linspace(*x2_range, 250)
+        x1_mesh, x2_mesh = np.meshgrid(x1_offset, x2_offset)
+        # Iterating through evaluation functions
+        result = {}
+        for func in eval_func:
+            # Creating mine with eval function
+            mine = EvalFuncAnalyser._create_mine(func)
+            # Adding training samples
+            for sample in samples_train:
+                mine.add_sample(sample)
+            # Iterating through mesh
+            y = np.zeros_like(x1_mesh)
+            for i in range(x1_mesh.shape[0]):
+                for j in range(x1_mesh.shape[1]):
+                    # Shift x values by offset
+                    attr_shifted = np.array([
+                        attr_test[0] + x1_mesh[i, j],
+                        attr_test[1] + x2_mesh[i, j]
+                    ])
+                    # Creating and evaluating test sample
+                    sample_test = EvalFuncAnalyser._create_sample(attr_shifted.T)
+                    y[i, j] = mine.eval_sample(sample_test)
+            # Saving result
+            result[func.__qualname__] = y
+        # Plotting result
+        plotting.plot_eval_result(x1_mesh, x2_mesh, result, sample_test=attr_test)
 
     @staticmethod
     def _create_mine(eval_func: Callable) -> Mine:
+        """
+        Creates a mine from an evaluation function.
+        """
         func_str = eval_func.__qualname__.split('.')
         mine = globals()[func_str[0]](
             coordinates=np.zeros(3),
@@ -76,6 +128,9 @@ class EvalFuncAnalyser:
 
     @staticmethod
     def _create_sample(attr_values: np.ndarray) -> Sample:
+        """
+        Creates a sample with provided attribute values.
+        """
         sample = Sample(
             coordinates=np.zeros(3),
             label=0,

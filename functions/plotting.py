@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import scipy.stats
 import statsmodels.api as sm
-from typing import List, Optional, Iterable
+from typing import List, Optional, Iterable, Dict
 
 
 def plot_qq(attribute_values: np.ndarray, attr_idx:int=0):
@@ -170,33 +170,57 @@ def plot_correlation_matrix(values: np.ndarray, labels: Optional[Iterable[str]] 
     plt.show()
 
 
-def plot_eval_results(x: np.ndarray, y: List[np.ndarray] or np.ndarray, labels=None):
-    # Wrap y value if only one eval result
-    if not isinstance(y, list):
-        y = [y]
-    # Normalize y values if multiple eval results are provided
-    if len(y) > 1:
-        max_val = np.max(y)
-        y = [(y_cur + np.abs(y_cur.min()) if y_cur.min() < 0 else y_cur)/max_val for y_cur in y]
-    # Plot all eval results
-    plt.figure()
-    for y_current in y:
-        plt.plot(x.T, y_current.T)
-    # Setting labels
-    plt.xlabel('x Offsets')
-    if len(y) > 1:
-        plt.yticks([])
+def plot_eval_result(x1, x2, results: Dict[str, np.ndarray], sample_test: Optional[np.ndarray]=None):
+    """
+    Plots the result of an evaluation function analysis.
+    """
+    # Getting function names
+    names = list(results.keys())
+    # Determine type of plot
+    use_surface_plot = False
+    if len(names) == 1:
+        use_surface_plot = True
+    # Creating plot
+    if use_surface_plot:
+        # Get y values
+        y = results[names[0]]
+        # Defining figure
+        fig, axs = plt.subplots(
+            2, 2,
+            sharex='col',
+            sharey='row',
+            gridspec_kw={'width_ratios': [4, 2], 'height_ratios': [2, 4]}
+        )
+        # Defining sample axis and orientation
+        sample_axis = [axs[0, 0], axs[1, 1]]
+        sample_orient = ['vertical', 'horizontal']
+        # Plotting
+        axs[1, 0].contourf(x1, x2, y)
+        axs[0, 0].plot(x1[0], np.max(y, axis=0))
+        axs[1, 1].plot(np.max(y, axis=1), x2[:, 0])
+        # Disable axis of empty subplot
+        axs[0, 1].axis('off')
     else:
-        plt.ylabel('Evaluation Value')
-    # Add legend if labels are provided
-    if labels is not None:
-        plt.legend(labels)
-    plt.show()
-
-
-def plot_eval_results_2d(x, y, z):
-    plt.figure()
-    plt.contourf(x, y, z)
+        # Defining figure
+        fig, axs = plt.subplots(2, 1)
+        # Defining sample axis and orientation
+        sample_axis = axs
+        sample_orient = ['vertical', 'horizontal']
+        # Combining x values to list
+        x = [x1[0, :], x2[:, 0]]
+        # Plotting all functions
+        for func_name in names:
+            y = results[func_name]
+            for i in range(2):
+                axs[i].plot(x[i], np.max(y, axis=i))
+        # Adding legend
+        plt.legend(names)
+    # Plotting histogram of sample as reference
+    if sample_test is not None:
+        for i in range(len(sample_axis)):
+            sample_axis[i].hist(sample_test[i, :], orientation=sample_orient[i], density=True)  # TODO: Replace density with accurate normalization
+    # Showing figure
+    plt.tight_layout()
     plt.show()
 
 
