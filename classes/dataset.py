@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import os
-from typing import List, Iterator, Optional, Callable
+from typing import List, Iterator, Optional, Callable, Generator
 
 
 class Sample:
@@ -76,32 +76,55 @@ class Dataset:
         self._samples = samples
         self._attr_labels = attr_labels
 
-    def crossval_samples(self, n_folds:int, shuffle=True):
+    def cv_generator(self, proportion_test:float, shuffle=True, verbose: bool=False) -> Generator[np.ndarray, np.ndarray]:
+        """
+        Generates train and test samples for cross-validation according to proportion of test samples.
+        """
         # Copy samples
         samples_cv = np.array(self._samples)
-        # Set up array with fold sizes
-        n_samples = len(samples_cv)
-        fold_sizes = n_samples // n_folds * np.ones(n_folds, dtype=int)
-        fold_sizes[:(n_samples % n_folds)] += 1
         # Shuffle data if wanted
         if shuffle:
             samples_cv = samples_cv[np.random.permutation(len(samples_cv))]
-
-        samples_train = []
-        samples_test = []
-        idx_begin = 0
         # Iterate through folds
-        for fold_size in fold_sizes:
-            # Setting up mask indices
-            idx_end = idx_begin + fold_size
-            # Creating sample mask
-            mask = np.ones(n_samples).astype(np.bool)
-            mask[idx_begin:idx_end] = False
-            samples_train.append(samples_cv[mask])
-            samples_test.append(samples_cv[np.invert(mask)])
-            idx_begin += fold_size
+        for mask in self._cv_mask_generator(len(samples_cv), proportion_test, verbose=verbose):
+            yield samples_cv[mask], samples_cv[np.invert(mask)]
 
-        return list(zip(samples_train, samples_test))
+    @staticmethod
+    def _cv_mask_generator(n_samples: int, pct_test: float, verbose: bool=False) -> Generator[np.ndarray]:
+        """
+        Creates generator which gradually yields masks for cross-validation.
+        """
+        # Check input value
+        if pct_test > 1 or pct_test < 0:
+            raise ValueError('Invalid value for test proportion!')
+        # Handling case of reverse cross-validation
+        bool_array = np.ones
+        if pct_test > 0.5:
+            bool_array = np.zeros
+            pct_test = 1 - pct_test
+        # Determining amount of test samples per fold
+        n_test = int(np.ceil(n_samples * pct_test))
+        if n_test == 0:
+            n_test = int(n_samples * pct_test)
+        # Determining amount of folds
+        n_folds = int(np.ceil(n_samples / n_test))
+        # Iterating trough folds
+        idx_start = 0
+        for i in range(n_folds):
+            # Creating mask
+            mask = bool_array(n_samples, dtype=bool)
+            # Determining end of selection
+            idx_end = idx_start + n_test
+            if idx_end > n_samples:
+                idx_end = n_samples
+            # Reversing bool of selection
+            mask[idx_start:idx_end] = np.invert(mask[idx_start])
+            # Shifting selection start
+            idx_start += n_test
+            if verbose:
+                print('\r{}/{}'.format(i+1, n_folds), end='')
+            # Yielding current mask
+            yield mask
 
     @property
     def attributes(self) -> np.ndarray:
