@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import os
-from typing import List, Iterator, Optional, Callable, Generator
+from typing import List, Iterator, Optional, Callable, Generator, Tuple
 
 
 class Sample:
@@ -76,7 +76,7 @@ class Dataset:
         self._samples = samples
         self._attr_labels = attr_labels
 
-    def cv_generator(self, proportion_test:float, shuffle=True, verbose: bool=False) -> Generator[np.ndarray, np.ndarray]:
+    def cv_generator(self, proportion_test:float, shuffle=True, verbose: bool=False) -> Generator[Tuple[np.ndarray, np.ndarray], None, None]:
         """
         Generates train and test samples for cross-validation according to proportion of test samples.
         """
@@ -90,7 +90,7 @@ class Dataset:
             yield samples_cv[mask], samples_cv[np.invert(mask)]
 
     @staticmethod
-    def _cv_mask_generator(n_samples: int, pct_test: float, verbose: bool=False) -> Generator[np.ndarray]:
+    def _cv_mask_generator(n_samples: int, pct_test: float, verbose: bool=False) -> Generator[np.ndarray, None, None]:
         """
         Creates generator which gradually yields masks for cross-validation.
         """
