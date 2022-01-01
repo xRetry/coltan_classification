@@ -30,7 +30,7 @@ class Mine(abc.ABC):
         self._func_normalize = Normalization().__getattribute__(name_func_normalize)
         self._func_transform = parameters.func_transform
         self._func_eval = parameters.func_eval
-        self._eval_args = parameters.eval_args
+        self._eval_args = parameters.eval_kwargs
         self._estimator = parameters.estimator
 
     def add_sample(self, sample: Sample) -> None:
