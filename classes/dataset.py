@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import os
-from typing import List, Iterator, Optional, Callable, Generator, Tuple
+from typing import List, Iterator, Optional, Callable, Generator, Tuple, Iterable
 
 
 class Sample:
@@ -33,9 +33,12 @@ class Dataset:
     _samples: np.ndarray
     _attr_labels: np.ndarray
 
-    def __init__(self, file:Optional[str]='\\data\\ctpa-data.csv'):
+    def __init__(self, file:Optional[str]='\\data\\ctpa-data.csv', samples: Optional[Iterable[Sample]]=None):
         if file is not None:
             self._load_from_file(file)
+        elif samples is not None:
+            self._samples = np.array(samples)
+            self._attr_labels = np.array([])
 
     def _load_from_file(self, file) -> None:
         """
