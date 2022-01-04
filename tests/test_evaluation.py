@@ -23,14 +23,14 @@ class LossFunctionTestCase(unittest.TestCase):
 class LabelSelectionTestCase(unittest.TestCase):
     def test_best_mine(self):
         # Normal function
-        labels = np.array(list(range(3)))
-        eval_result = np.array([0, 1, 3])
+        labels = np.array([1, -1, 1])
+        eval_result = np.array([0, 1, 2])
         label_selection = selection.max_score(eval_result, labels)
-        self.assertEqual(label_selection, 2)
+        self.assertEqual(label_selection, 1)
         # NaN value
         eval_result = np.array([0, 1, np.nan])
         label_selection = selection.max_score(eval_result, labels)
-        self.assertEqual(label_selection, 1)
+        self.assertEqual(label_selection, -1)
         # all NaN values
         eval_result = np.array([np.nan, np.nan, np.nan])
         label_selection = selection.max_score(eval_result, labels)
