@@ -79,7 +79,11 @@ class Dataset:
         self._samples = samples
         self._attr_labels = attr_labels
 
-    def cv_generator(self, proportion_test:float, shuffle=True, verbose: bool=False) -> Generator[Tuple[np.ndarray, np.ndarray], None, None]:
+    def train_test_split(self, proportion_test: float, shuffle: bool=True) -> (np.ndarray, np.ndarray):
+        cv_gen = self.cv_generator(proportion_test, shuffle=shuffle)
+        return next(cv_gen)
+
+    def cv_generator(self, proportion_test:float, shuffle: bool=True, verbose: bool=False) -> Generator[Tuple[np.ndarray, np.ndarray], None, None]:
         """
         Generates train and test samples for cross-validation according to proportion of test samples.
         """
@@ -145,7 +149,7 @@ class Dataset:
     def labels(self) -> np.ndarray:
         lbls = []
         for sample in self._samples:
-            lbls.append(np.repeat(sample.label, len(sample.attributes)))
+            lbls.append(np.repeat(sample.proportional_score, len(sample.attributes)))
         return np.concatenate(lbls)
 
     def __len__(self) -> int:
