@@ -6,7 +6,7 @@ from functions.distributions import uni_normal, multi_normal, normal_inverse_wis
 from classes.parameters import Parameters
 from classes.estimators import Estimator
 from classes.normalizers import Normalization
-from typing import List, Optional, Callable, Iterable
+from typing import Optional, Callable, Iterable
 
 
 '''
@@ -16,16 +16,16 @@ from typing import List, Optional, Callable, Iterable
 
 class Mine(abc.ABC):
     _coordinates: np.ndarray
-    _status: int
+    _label: int
     _func_normalize: Callable
     _func_transform: Callable
     _func_eval: Callable
     _eval_args: dict
     _estimator: Estimator
 
-    def __init__(self, coordinates: Iterable, status: int, parameters: Parameters):
+    def __init__(self, coordinates: Iterable, label: int, parameters: Parameters):
         self._coordinates = np.array(coordinates)
-        self._status = status
+        self._label = label
         name_func_normalize = parameters.func_normalize.__name__
         self._func_normalize = Normalization().__getattribute__(name_func_normalize)
         self._func_transform = parameters.func_transform
@@ -50,7 +50,7 @@ class Mine(abc.ABC):
 
     @property
     def status(self) -> int:
-        return self._status
+        return self._label
 
     @property
     @abc.abstractmethod
