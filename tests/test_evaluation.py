@@ -25,30 +25,30 @@ class LabelSelectionTestCase(unittest.TestCase):
         # Normal function
         labels = np.array(list(range(3)))
         eval_result = np.array([0, 1, 3])
-        label_selection = selection.mine(eval_result, labels)
+        label_selection = selection.max_score(eval_result, labels)
         self.assertEqual(label_selection, 2)
         # NaN value
         eval_result = np.array([0, 1, np.nan])
-        label_selection = selection.mine(eval_result, labels)
+        label_selection = selection.max_score(eval_result, labels)
         self.assertEqual(label_selection, 1)
         # all NaN values
         eval_result = np.array([np.nan, np.nan, np.nan])
-        label_selection = selection.mine(eval_result, labels)
+        label_selection = selection.max_score(eval_result, labels)
         self.assertTrue(np.isnan(label_selection))
 
     def test_best_label(self):
         # Normal function
         labels = np.array([-1, -1, 1, 1])
         eval_result = np.array([0.35, 0.05, 0.3, 0.3])
-        label_selection = selection.label(eval_result, labels)
+        label_selection = selection.proportional_score(eval_result, labels)
         self.assertEqual(label_selection, 1)
         # NaN value
         eval_result = np.array([0.35, 0.05, np.nan, 0.3])
-        label_selection = selection.label(eval_result, labels)
+        label_selection = selection.proportional_score(eval_result, labels)
         self.assertEqual(label_selection, -1)
         # all NaN values
         eval_result = np.array([np.nan, np.nan, np.nan, np.nan])
-        label_selection = selection.label(eval_result, labels)
+        label_selection = selection.proportional_score(eval_result, labels)
         self.assertTrue(np.isnan(label_selection))
 
 
