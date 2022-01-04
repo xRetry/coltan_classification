@@ -7,20 +7,16 @@ from typing import List
 
 
 class MineAnalyser:
-    _mine_parameters: Parameters
-
-    def __init__(self, parameters: Parameters):
-        self._mine_parameters = parameters
-
-    def parameter_progression(self) -> None:
+    @staticmethod
+    def parameter_progression(parameters: Parameters) -> None:
         """
         Progressively adds samples to mine and collects the parameters. Plots the result.
         """
         # Load dataset
         dataset = Dataset()
-        samples_mine_selected, _ = self._select_mine_samples(dataset)
+        samples_mine_selected, _ = MineAnalyser._select_mine_samples(dataset)
         # Build mine
-        mine = self._create_mine()
+        mine = MineAnalyser._create_mine(parameters)
         # Adding samples to mine and collecting parameters
         mine_params = []
         for sample in samples_mine_selected:
@@ -29,16 +25,17 @@ class MineAnalyser:
         # Plotting the mine parameters over time
         plotting.plot_progression(mine_params)
 
-    def evaluation(self):
+    @staticmethod
+    def evaluation(parameters: Parameters):
         """
         Evaluates all samples using a mine and plots the result.
         """
         # Load dataset
         dataset = Dataset()
         # Create mine
-        mine = self._create_mine()
+        mine = MineAnalyser._create_mine(parameters)
         # Get samples to add to mine
-        samples_mine_selected, mine_id_selected = self._select_mine_samples(dataset)
+        samples_mine_selected, mine_id_selected = MineAnalyser._select_mine_samples(dataset)
         # Add selected samples to mine
         for sample in samples_mine_selected:
             mine.add_sample(sample)
@@ -48,7 +45,7 @@ class MineAnalyser:
             if sample.mine_id == mine_id_selected:
                 has_sample[i] = True
             eval_values[i] = mine.eval_sample(sample)
-            labels[i] = sample.label
+            labels[i] = sample.proportional_score
         # Plot the result
         plotting.plot_mine_evaluation(eval_values, labels, has_sample)
 
@@ -64,15 +61,16 @@ class MineAnalyser:
         samples_mine_selected = [sample for sample in dataset if sample.mine_id == mine_ids_unique[idx_selected]]
         return samples_mine_selected, mine_ids_unique[idx_selected]
 
-    def _create_mine(self) -> Mine:
+    @staticmethod
+    def _create_mine(parameters: Parameters) -> Mine:
         """
         Builds mine according to provided mine parameters.
         """
-        mine = self._mine_parameters.MineClass(
+        mine = parameters.MineClass(
             coordinates=np.zeros(3),
             status=0,
-            parameters=self._mine_parameters,
-            **self._mine_parameters.mine_kwargs
+            parameters=parameters,
+            **parameters.mine_kwargs
         )
         return mine
 
