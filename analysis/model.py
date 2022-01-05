@@ -65,6 +65,69 @@ class ModelAnalyser:
         plotting.plot_cv_stepwise(pct_test, np.array(conf_ints), model_names=model_names)
 
     @staticmethod
+    def mine_distances(parameters: Parameters):
+        dataset = Dataset()
+        samples_train, samples_test = dataset.train_test_split(0.00001)
+        model = parameters.ModelClass(parameters, samples_train)
+        mine_labels = np.array([m._label for m in model._mines.values()])
+        prediction, score = model.classify(samples_test[0], return_scores=True)
+        score_pos = score[mine_labels == 1]
+        score_neg = score[mine_labels == -1]
+        print('Average Score\n\t1: {}\n\t-1: {}\n -> Label: {} (true: {})'.format(
+            score_pos.mean(),
+            score_neg.mean(),
+            1 if score_pos.mean() > score_neg.mean() else -1,
+            samples_test[0].proportional_score
+        ))
+        print('Max Score\n\t1: {}\n\t-1: {}\n -> Label: {} (true: {})'.format(
+            score_pos.max(),
+            score_neg.max(),
+            1 if score_pos.max() > score_neg.max() else -1,
+            samples_test[0].proportional_score
+        ))
+
+    @staticmethod
+    def params_generator(all_combinations=False, **kwargs):
+        """
+        Generates a list of Parameters from multiple parameters in form of a list.
+        """
+        # Wrap values in list if not already
+        for k, v in kwargs.items():
+            if not isinstance(v, Iterable):
+                kwargs[k] = [v]
+        # Fills up values to reach the length of the longest values
+        if not all_combinations:
+            # Find the longest value list
+            len_max = max([len(v) for v in kwargs.values()])
+            # Iterating through max length of values
+            params = []
+            for i in range(len_max):
+                # Creating kwargs dict for Parameters creation
+                param_dict = {}
+                for k, v in kwargs.items():
+                    if len(v) > 1:
+                        if len(v) != len_max:
+                            raise ValueError('Invalid argument length!')
+                        param_dict[k] = v[i]
+                    else:
+                        param_dict[k] = v[0]
+                # Create Parameters and add to output
+                params.append(Parameters(**param_dict))
+        # Creates the Cartesian product of all values
+        else:
+            # Creating kwargs tuples with of (arg_name, arg_value)
+            tuples = []
+            for k, val in kwargs.items():
+                tuples.append([])
+                for v in val:
+                    tuples[-1].append((k, v))
+            # Cartesian product of kwargs tuples
+            combinations = list(itertools.product(*tuples))
+            # Creating Parameters from kwargs tuples
+            params = [Parameters(**dict(c)) for c in combinations]
+        return params
+
+    @staticmethod
     def _evaluate_model(inputs: Tuple[Tuple[Parameters, int], Tuple[np.ndarray, np.ndarray]]) -> (np.ndarray, np.ndarray, int):
         """
         Wrapper function for model evaluation to be used in maps.
