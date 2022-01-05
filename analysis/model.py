@@ -3,7 +3,7 @@ import itertools
 from classes.dataset import Dataset
 from classes.parameters import Parameters
 from functions import plotting
-from typing import List, Callable, Optional, Tuple
+from typing import List, Callable, Optional, Tuple, Iterable
 from multiprocessing import Pool
 import statsmodels.api as sm
 
