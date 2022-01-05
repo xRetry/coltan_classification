@@ -46,7 +46,7 @@ class ModelAnalyser:
         return losses
 
     @staticmethod
-    def cross_validate_stepwise(parameters: Parameters or List[Parameters], dataset: Dataset, n_splits: int) -> None:
+    def cross_validate_stepwise(parameters: Parameters or List[Parameters], dataset: Dataset, n_splits: int, model_names: Optional[Iterable[str]]=None) -> None:
         """
         Shows model loss for different amount of training samples.
         """
@@ -59,7 +59,8 @@ class ModelAnalyser:
             conf_ints.append(conf_int)
             print()
         # Creating model names for plotting
-        model_names = ['{}-{}-{}'.format(p.ModelClass.__name__, p.MineClass.__name__, p.func_eval.__name__) for p in parameters]  # TODO: dynamically change model names
+        if model_names is None:
+            model_names = ['{}-{}-{}'.format(p.ModelClass.__name__, p.MineClass.__name__, p.func_eval.__name__) for p in parameters]  # TODO: dynamically change model names
         # Plotting results
         plotting.plot_cv_stepwise(pct_test, np.array(conf_ints), model_names=model_names)
 
