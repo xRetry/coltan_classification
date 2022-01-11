@@ -56,7 +56,7 @@ def test_correlation(x1: np.ndarray, x2: np.ndarray) -> float:
 @verification('ba', 'ca', None)
 def test_ranksums(x1: np.ndarray, x2: np.ndarray, func_aggr: Callable=np.product) -> float:
     """
-    Performs a ranksums test between two non-parametric distributions.
+    Performs a ranksums test between two non-parametric evaluations.
     """
     test_results = np.zeros(x1[0])
     for i in range(len(x1[0])):
@@ -67,7 +67,7 @@ def test_ranksums(x1: np.ndarray, x2: np.ndarray, func_aggr: Callable=np.product
 @verification('ba', 'ca', None)
 def test_mannwhitneyu(x1: np.ndarray, x2: np.ndarray, func_aggr: Callable=np.product) -> float:
     """
-    Performs a mann-whitney-u test between two non-parametric distributions.
+    Performs a mann-whitney-u test between two non-parametric evaluations.
     """
     test_results = np.zeros(x1[0])
     for i in range(len(x1[0])):
