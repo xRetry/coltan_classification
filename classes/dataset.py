@@ -155,7 +155,7 @@ class Dataset:
     def labels(self) -> np.ndarray:
         lbls = []
         for sample in self._samples:
-            lbls.append(np.repeat(sample.proportional_score, len(sample.attributes)))
+            lbls.append(np.repeat(sample.label, len(sample.attributes)))
         return np.concatenate(lbls)
 
     def __len__(self) -> int:
