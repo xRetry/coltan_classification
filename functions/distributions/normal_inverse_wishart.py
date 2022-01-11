@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.special
 import scipy.stats
-from functions.decorators import verification
+from functions.utils import verification
 
 
 @verification('a1', 'aa', '', '', 'ba')
