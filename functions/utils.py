@@ -1,5 +1,6 @@
 import functools
 import numpy as np
+from typing import Dict, Tuple
 
 
 def verification(*shapes):
@@ -57,6 +58,24 @@ def verification(*shapes):
             return result
         return wrapper
     return decorator
+
+
+def print_progressbar(progress: Dict[str, Tuple[int, int]], is_end: bool=True) -> None:
+    """
+    Prints progress bars from items of dictionary. Format: {name: (current progress, full length)}.
+    """
+    # Iterating through progress bars and building console output
+    output = ''
+    for k, v in progress.items():
+        # Determine amount of current and completed elements
+        n_load = int((v[0] + 1) / v[1] * 10)
+        n_full = int((v[0]) / v[1] * 10) if not is_end else n_load
+        # Creating line string
+        line = '=' * n_full + '-' * (n_load - n_full) + ' ' * (10 - n_load)
+        # Adding line string to console output
+        output += '{}: |{}| {}/{}\t\t'.format(k, line, v[0] + 1 if is_end else v[0], v[1])
+    # Printing output to console
+    print('\r{}'.format(output), end='')
 
 
 if __name__ == '__main__':

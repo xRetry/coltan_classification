@@ -1,5 +1,5 @@
 import numpy as np
-from functions.decorators import verification
+from functions.utils import verification
 from typing import Optional
 
 
@@ -24,7 +24,7 @@ def hodges_lehmann(attr_values: np.ndarray) -> np.ndarray:
     return loc
 
 
-@verification('ba', None, )
+@verification('ba', None, None)
 def std(attr_values: np.ndarray, corrected=True, loc: Optional[np.ndarray]=None) -> np.ndarray:
     if loc is None:
         loc = mean(attr_values)

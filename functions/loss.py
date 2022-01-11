@@ -1,5 +1,5 @@
 import numpy as np
-from functions.decorators import verification
+from functions.utils import verification
 
 
 @verification('a', 'a')
