@@ -2,34 +2,49 @@ import numpy as np
 import itertools
 from classes.dataset import Dataset
 from classes.parameters import Parameters
-from functions import plotting
-from typing import List, Callable, Optional, Tuple, Iterable
+from functions import plotting, utils
+from typing import List, Callable, Optional, Tuple, Iterable, Dict
 from multiprocessing import Pool
 import statsmodels.api as sm
 
 
 class ModelAnalyser:
     @staticmethod
-    def cross_validate(parameters: Parameters or List[Parameters], dataset: Dataset, pct_test: float, return_confint: bool=False) -> list:
+    def cross_validate(parameters: Parameters or List[Parameters], dataset: Dataset, pct_test: float,
+                       return_confint: bool=False, progress_dict: Optional[Dict[str, Tuple[int, int]]]=None) -> list:
         """
         Cross-validates models with provided model parameters.
         """
         # Wrapping parameters in list if not
         if not isinstance(parameters, list):
             parameters = [parameters]
+        # Initializing dict for printing function
+        if progress_dict is None:
+            progress_dict = {}
         # Creating sample generator
-        sample_gen = dataset.cv_generator(pct_test, shuffle=True, verbose=True)
+        sample_gen, n_folds = dataset.cv_generator(pct_test, shuffle=True)
+        # Calculating the total amount of iterations
+        n_iter = n_folds * len(parameters)
         # Setting up lists for results
         predictions, labels = [[] for p in parameters], [[] for p in parameters]
         # Evaluating all folds and parameters
         with Pool(processes=4) as pool:
             eval_map = pool.imap_unordered(
+            #eval_map = map(
                 ModelAnalyser._evaluate_model,
                 itertools.product(zip(parameters, range(len(parameters))), sample_gen)
             )
-            for eval_result in eval_map:
+            for i in range(n_iter):
+                # Printing progress bar
+                progress_dict['Cross-Validation'] = (i, n_iter)
+                utils.print_progressbar(progress_dict, is_end=False)
+                # Evaluating and storing result
+                eval_result = next(eval_map)
                 labels[eval_result[2]].append(eval_result[0])
                 predictions[eval_result[2]].append(eval_result[1])
+                # Printing progress bar
+                progress_dict['Cross-Validation'] = (i, n_iter)
+                utils.print_progressbar(progress_dict)
         # Iterating through predictions
         losses = []
         for i in range(len(predictions)):
@@ -52,12 +67,14 @@ class ModelAnalyser:
         """
         # Setting up data splits
         pct_test = np.linspace(0.1, 0.9, n_splits)
+        # Setting up printing dictionary
+        progress_dict = {}
         # Iterating through data splits
         losses, conf_ints = [], []
         for i, n in enumerate(pct_test):
-            conf_int = ModelAnalyser.cross_validate(parameters, dataset, n, return_confint=True)
+            progress_dict['Step'] = (i, len(pct_test))
+            conf_int = ModelAnalyser.cross_validate(parameters, dataset, n, return_confint=True, progress_dict=progress_dict)
             conf_ints.append(conf_int)
-            print()
         # Creating model names for plotting
         if model_names is None:
             model_names = ['{}-{}-{}'.format(p.ModelClass.__name__, p.MineClass.__name__, p.func_eval.__name__) for p in parameters]  # TODO: dynamically change model names
