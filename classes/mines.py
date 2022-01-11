@@ -26,11 +26,11 @@ class Mine(abc.ABC):
     def __init__(self, coordinates: Iterable, label: int, parameters: Parameters):
         self._coordinates = np.array(coordinates)
         self._label = label
-        self._normalizer = parameters.normalizer()
+        self._normalizer = parameters.NormalizerClass()
         self._func_transform = parameters.func_transform
         self._func_eval = parameters.func_eval
         self._eval_args = parameters.eval_kwargs
-        self._estimator = parameters.estimator
+        self._estimator = parameters.EstimatorClass
 
     def add_sample(self, sample: Sample) -> None:
         x_trans = self._func_transform(sample.attributes)
