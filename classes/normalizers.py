@@ -1,23 +1,43 @@
 import numpy as np
+import abc
 from typing import Optional
 
+from sklearn.preprocessing import StandardScaler
 
-class Normalization:
-    _norm_constant: Optional[np.ndarray]
-    _shift: Optional[np.ndarray]
 
-    def __init__(self):
-        self._norm_constant = None
+class Normalizer(abc.ABC):
+    is_fitted: bool = False
 
-    def none(self, x: np.ndarray):
+    @abc.abstractmethod
+    def fit(self, x: np.ndarray) -> None:
+        pass
+
+    @abc.abstractmethod
+    def transform(self, x: np.ndarray) -> np.ndarray:
+        pass
+
+
+class NoNormalizer(Normalizer):
+    def fit(self, x: np.ndarray) -> None:
+        self.is_fitted = True
+        pass
+
+    def transform(self, x: np.ndarray) -> np.ndarray:
         return x
 
-    def fixed_norm(self, x: np.ndarray):
-        if self._norm_constant is None or self._shift is None:
-            self._norm_constant = (np.max(x, axis=0) - np.min(x, axis=0))
-            self._norm_constant[self._norm_constant == 0] = 1
-            self._shift = np.mean(x / self._norm_constant, axis=0)
-        return x / self._norm_constant - self._shift
+
+class StandardNormalizer(Normalizer):
+    _standard_scaler: StandardScaler
+
+    def __init__(self):
+        self._standard_scaler = StandardScaler()
+
+    def fit(self, x: np.ndarray) -> None:
+        self.is_fitted = True
+        self._standard_scaler.fit(x)
+
+    def transform(self, x: np.ndarray) -> np.ndarray:
+        return self._standard_scaler.transform(x)
 
 
 if __name__ == '__main__':
