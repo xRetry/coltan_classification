@@ -83,7 +83,7 @@ class Dataset:
         cv_gen = self.cv_generator(proportion_test, shuffle=shuffle)
         return next(cv_gen)
 
-    def cv_generator(self, proportion_test:float, shuffle: bool=True, verbose: bool=False) -> Generator[Tuple[np.ndarray, np.ndarray], None, None]:
+    def cv_generator(self, proportion_test:float, shuffle: bool=True) -> (Generator[Tuple[np.ndarray, np.ndarray], None, None], int):
         """
         Generates train and test samples for cross-validation according to proportion of test samples.
         """
@@ -92,14 +92,14 @@ class Dataset:
         # Shuffle data if wanted
         if shuffle:
             samples_cv = samples_cv[np.random.permutation(len(samples_cv))]
-        # Iterate through folds
-        for mask in self._cv_mask_generator(len(samples_cv), proportion_test, verbose=verbose):
-            yield samples_cv[mask], samples_cv[np.invert(mask)]
+        n_folds, n_test, bool_array = self._gen_setup(len(samples_cv), proportion_test)
+        gen = self._cv_generator(samples_cv, n_folds, n_test, bool_array)
+        return gen, n_folds
 
     @staticmethod
-    def _cv_mask_generator(n_samples: int, pct_test: float, verbose: bool=False) -> Generator[np.ndarray, None, None]:
+    def _gen_setup(n_samples: int, pct_test: float):
         """
-        Creates generator which gradually yields masks for cross-validation.
+        Determines necessary values for the cross-validation generator.
         """
         # Check input value
         if pct_test > 1 or pct_test < 0:
@@ -115,6 +115,14 @@ class Dataset:
             n_test = int(n_samples * pct_test)
         # Determining amount of folds
         n_folds = int(np.ceil(n_samples / n_test))
+        return n_folds, n_test, bool_array
+
+    @staticmethod
+    def _cv_generator(samples_cv: np.ndarray, n_folds: int, n_test: int, bool_array: Callable) -> Generator[Tuple[np.ndarray, np.ndarray], None, None]:
+        """
+        Creates generator which gradually yields masks for cross-validation.
+        """
+        n_samples = len(samples_cv)
         # Iterating trough folds
         idx_start = 0
         for i in range(n_folds):
@@ -128,10 +136,8 @@ class Dataset:
             mask[idx_start:idx_end] = np.invert(mask[idx_start])
             # Shifting selection start
             idx_start += n_test
-            if verbose:
-                print('\r{}/{}'.format(i+1, n_folds), end='')
             # Yielding current mask
-            yield mask
+            yield samples_cv[mask], samples_cv[np.invert(mask)]
 
     @property
     def attributes(self) -> np.ndarray:
