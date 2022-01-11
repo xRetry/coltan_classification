@@ -9,11 +9,11 @@ from sklearn.linear_model import LogisticRegression
 
 
 class Model(abc.ABC):
-    @staticmethod
+    @abc.abstractmethod
     def __init__(self, parameters: Parameters, samples: Iterable[Sample]):
         pass
 
-    @staticmethod
+    @abc.abstractmethod
     def classify(self, sample: Sample, return_scores: bool=False) -> int or (int, np.ndarray):
         """
         Classifies a sample.
@@ -21,21 +21,27 @@ class Model(abc.ABC):
         pass
 
 
-class KernelModel(Model):
+class MineModel(Model):
     _mines: Dict[str, Mine]
     _parameters: Parameters
 
     def __init__(self, parameters: Parameters, samples: Iterable[Sample]):
-        super().__init__(self, parameters, samples)
+        super().__init__(parameters, samples)
         self._mines = {}
         self._parameters = parameters
         self._create_mines(samples)
 
     def _create_mines(self, samples: Iterable[Sample]) -> None:
+        """
+        Adds all samples to the model.
+        """
         for sample in samples:
             self._add_sample(sample)
 
-    def _add_sample(self, sample: Sample):
+    def _add_sample(self, sample: Sample) -> None:
+        """
+        Creates mines if necessary and adds new sample to it.
+        """
         mine_id = sample.mine_id
         mine = self._mines.get(mine_id)
         if mine is None:
@@ -65,11 +71,27 @@ class KernelModel(Model):
         return prediction_label
 
 
+class LabelModel(MineModel):
+    def _add_sample(self, sample: Sample) -> None:
+        """
+        Creates mines if necessary and adds new sample to it.
+        """
+        mine = self._mines.get(str(sample.label))
+        if mine is None:
+            self._mines[str(sample.label)] = self._parameters.MineClass(
+                coordinates=sample.coordinates,
+                label=sample.label,
+                parameters=self._parameters,
+                **self._parameters.mine_kwargs
+            )
+        self._mines[str(sample.label)].add_sample(sample)
+
+
 class LogisticRegressionModel(Model):
     _logistic_model: LogisticRegression
 
     def __init__(self, parameters: Parameters, samples: Iterable[Sample]):
-        super().__init__(self, parameters, samples)
+        super().__init__(parameters, samples)
         data_train = Dataset(samples=samples)
         labels = data_train.labels
         attributes = np.concatenate(data_train.attributes)
