@@ -115,6 +115,18 @@ class AggregationMine(Mine):
         loc = self._estimator.to_loc(self._parameters.attributes)
         return non_parametric.test_norm2(loc, self._estimator.to_loc(x))
 
+    def eval_cosine(self, x: np.ndarray) -> float:
+        loc = self._estimator.to_loc(self._parameters.attributes)
+        return non_parametric.test_cosine(loc, self._estimator.to_loc(x))
+
+    def eval_canberra(self, x: np.ndarray) -> float:
+        loc = self._estimator.to_loc(self._parameters.attributes)
+        return non_parametric.test_canberra(loc, self._estimator.to_loc(x))
+
+    def eval_correlation(self, x: np.ndarray) -> float:
+        loc = self._estimator.to_loc(self._parameters.attributes)
+        return non_parametric.test_correlation(loc, self._estimator.to_loc(x))
+
     def eval_exponential(self, x: np.ndarray, exponent: float=2, scale: float=1) -> float:
         loc = self._estimator.to_loc(self._parameters.attributes)
         return non_parametric.test_exponential(loc, self._estimator.to_loc(x), exponent, scale)
@@ -122,6 +134,15 @@ class AggregationMine(Mine):
     def eval_ttest(self, x: np.ndarray) -> float:
         loc = self._estimator.to_loc(self._parameters.attributes)
         return uni_normal.test_1sample(loc, x)
+
+    def eval_ttest_2sample(self, x: np.ndarray) -> float:
+        loc = self._estimator.to_loc(self._parameters.attributes)
+        scale = self._estimator.to_scale(self._parameters.attributes)
+        n_obs = np.ones_like(loc) * len(self._parameters)
+        loc_x = self._estimator.to_loc(x)
+        scale_x = self._estimator.to_scale(x)
+        n_obs_x = np.ones_like(loc) * len(x)
+        return uni_normal.test_2sample(loc, scale, n_obs, loc_x, scale_x, n_obs_x)
 
     def eval_pdf(self, x: np.ndarray) -> float:
         loc = self._estimator.to_loc(self._parameters.attributes)
@@ -187,6 +208,24 @@ class BayesianSimpleMine(Mine):
     def eval_ttest(self, x: np.ndarray) -> float:
         return uni_normal.test_1sample(self._mean, x)
 
+    def eval_frobenius(self, x: np.ndarray) -> float:
+        return non_parametric.test_norm_frobenius(self._mean, self._estimator.to_loc(x))
+
+    def eval_norm1(self, x: np.ndarray) -> float:
+        return non_parametric.test_norm1(self._mean, self._estimator.to_loc(x))
+
+    def eval_norm2(self, x: np.ndarray) -> float:
+        return non_parametric.test_norm2(self._mean, self._estimator.to_loc(x))
+
+    def eval_cosine(self, x: np.ndarray) -> float:
+        return non_parametric.test_cosine(self._mean, self._estimator.to_loc(x))
+
+    def eval_canberra(self, x: np.ndarray) -> float:
+        return non_parametric.test_canberra(self._mean, self._estimator.to_loc(x))
+
+    def eval_correlation(self, x: np.ndarray) -> float:
+        return non_parametric.test_correlation(self._mean, self._estimator.to_loc(x))
+
     @property
     def parameters(self) -> dict:
         return {
@@ -228,6 +267,31 @@ class BayesianUniMine(Mine):
 
     def eval_ttest(self, x: np.ndarray) -> float:
         return uni_normal.test_1sample(self._loc, x)
+
+    def eval_frobenius(self, x: np.ndarray) -> float:
+        return non_parametric.test_norm_frobenius(self._loc, self._estimator.to_loc(x))
+
+    def eval_norm1(self, x: np.ndarray) -> float:
+        return non_parametric.test_norm1(self._loc, self._estimator.to_loc(x))
+
+    def eval_norm2(self, x: np.ndarray) -> float:
+        return non_parametric.test_norm2(self._loc, self._estimator.to_loc(x))
+
+    def eval_cosine(self, x: np.ndarray) -> float:
+        return non_parametric.test_cosine(self._loc, self._estimator.to_loc(x))
+
+    def eval_canberra(self, x: np.ndarray) -> float:
+        return non_parametric.test_canberra(self._loc, self._estimator.to_loc(x))
+
+    def eval_correlation(self, x: np.ndarray) -> float:
+        return non_parametric.test_correlation(self._loc, self._estimator.to_loc(x))
+
+    def eval_ttest_2sample(self, x: np.ndarray) -> float:
+        loc_x = self._estimator.to_loc(x)
+        scale_x = self._estimator.to_scale(x)
+        n_obs_x = np.ones_like(self._loc) * len(x)
+        n_obs = np.ones_like(self._loc) * self._nu
+        return uni_normal.test_2sample(self._loc, self._scale, n_obs, loc_x, scale_x, n_obs_x)
 
     @property
     def parameters(self) -> dict:
