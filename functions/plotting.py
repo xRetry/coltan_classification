@@ -205,14 +205,20 @@ def plot_eval_result(x1, x2, results: Dict[str, np.ndarray], sample_test: Option
         fig, axs = plt.subplots(2, 1)
         # Defining sample axis and orientation
         sample_axis = axs
-        sample_orient = ['vertical', 'horizontal']
+        sample_orient = ['vertical', 'vertical']
         # Combining x values to list
         x = [x1[0, :], x2[:, 0]]
         # Plotting all functions
         for func_name in names:
             y = results[func_name]
             for i in range(2):
-                axs[i].plot(x[i], np.max(y, axis=i))
+                y_vals = np.max(y, axis=i)
+                # Shift to zero
+                y_vals -= min(y_vals)
+                # Scale to one
+                y_vals /= max(y_vals)
+                # Plot function values
+                axs[i].plot(x[i], y_vals)
         # Adding legend
         plt.legend(names)
     # Plotting histogram of sample as reference
@@ -221,6 +227,46 @@ def plot_eval_result(x1, x2, results: Dict[str, np.ndarray], sample_test: Option
             sample_axis[i].hist(sample_test[i, :], orientation=sample_orient[i], density=True)  # TODO: Replace density with accurate normalization
     # Showing figure
     plt.tight_layout()
+    plt.show()
+
+
+def plot_cv_stepwise(splits: np.ndarray, conf_ints: np.ndarray, model_names: Iterable) -> None:
+    """
+    Plots the result of stepwise cross-validation.
+    """
+    # Iterate through all models and plotting result
+    for i in range(len(conf_ints[0, :, 0])):
+        # Determine center of confident intervals
+        mean = conf_ints[:, i, :].mean(axis=1)
+        # Plot confident intervals
+        plt.errorbar(splits, mean, yerr=np.abs(mean[:, None]-conf_ints[:, i, :]).T, capsize=5)
+    # Setting up layout
+    plt.xlabel('Test Proportion for Cross-Validation')
+    plt.ylabel('Accuracy')
+    plt.legend(model_names)
+    plt.show()
+
+
+def plot_kwargs_accs(x: Dict[str, np.ndarray], y: np.ndarray) -> None:
+    """
+    Plots result of kwargs function analysis.
+    """
+    # Get keys and values as from x dictionary
+    values = list(x.values())
+    labels = list(x.keys())
+    # 1D Plot
+    if len(values) == 1:
+        mean = np.mean(y, axis=1)
+        plt.errorbar(values[0], mean, yerr=np.abs(mean[:, None]-y).T, capsize=5)
+        plt.xlabel(labels[0])
+        plt.ylabel('Accuracy')
+    # 2D plot
+    else:
+        plt.contourf(values[0], values[1], y)
+        plt.xlabel(labels[0])
+        plt.ylabel(labels[1])
+        cbar = plt.colorbar()
+        cbar.ax.set_ylabel('Accuracy')
     plt.show()
 
 
