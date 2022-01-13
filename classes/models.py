@@ -4,6 +4,7 @@ import abc
 from classes.mines import Mine
 from classes.parameters import Parameters
 from classes.dataset import Dataset, Sample
+from classes.normalizers import Normalizer
 from typing import List, Optional, Callable, Dict, Iterable
 from sklearn.linear_model import LogisticRegression
 
@@ -89,19 +90,27 @@ class LabelModel(MineModel):
 
 class LogisticRegressionModel(Model):
     _logistic_model: LogisticRegression
+    _normalizer: Normalizer
+    _func_transform: Callable
 
     def __init__(self, parameters: Parameters, samples: Iterable[Sample]):
         super().__init__(parameters, samples)
+        self._func_transform = parameters.func_transform
+        self._normalizer = parameters.NormalizerClass()
+
         data_train = Dataset(samples=samples)
+        data_trans = self._func_transform(np.concatenate(data_train.attributes))
+        self._normalizer.fit(data_trans)
+        attributes = self._normalizer.transform(data_trans)
         labels = data_train.labels
-        attributes = np.concatenate(data_train.attributes)
-        self._logistic_model = LogisticRegression(random_state=0).fit(attributes, labels)
+        self._logistic_model = LogisticRegression(random_state=0, solver='newton-cg').fit(attributes, labels)
 
     def classify(self, sample: Sample, return_scores: bool=False) -> int or (int, np.ndarray):
         """
         Classifies a sample.
         """
-        predictions = self._logistic_model.predict(sample.attributes)
+        x = self._normalizer.transform(self._func_transform(sample.attributes))
+        predictions = self._logistic_model.predict(x)
         prediction_label = 1 if (predictions == 1).sum() / len(predictions) > 0.5 else -1
         if return_scores:
             return prediction_label, predictions
