@@ -16,7 +16,7 @@ class ModelAnalyser:
         Cross-validates models with provided model parameters.
         """
         # Wrapping parameters in list if not
-        if not isinstance(parameters, list):
+        if not isinstance(parameters, list or tuple):
             parameters = [parameters]
         # Initializing dict for printing function
         if progress_dict is None:
@@ -75,9 +75,6 @@ class ModelAnalyser:
             progress_dict['Step'] = (i, len(pct_test))
             conf_int = ModelAnalyser.cross_validate(parameters, dataset, n, return_confint=True, progress_dict=progress_dict)
             conf_ints.append(conf_int)
-        # Creating model names for plotting
-        if model_names is None:
-            model_names = ['{}-{}-{}'.format(p.ModelClass.__name__, p.MineClass.__name__, p.func_eval.__name__) for p in parameters]  # TODO: dynamically change model names
         # Plotting results
         plotting.plot_cv_stepwise(pct_test, np.array(conf_ints), model_names=model_names)
 
@@ -110,7 +107,7 @@ class ModelAnalyser:
         """
         # Wrap values in list if not already
         for k, v in kwargs.items():
-            if not isinstance(v, Iterable):
+            if not isinstance(v, list or tuple):
                 kwargs[k] = [v]
         # Fills up values to reach the length of the longest values
         if not all_combinations:
