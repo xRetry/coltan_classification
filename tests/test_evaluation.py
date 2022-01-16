@@ -1,7 +1,6 @@
 import unittest
 import numpy as np
-from functions import loss
-from functions import selection
+from core.functions import selection, loss
 
 
 class LossFunctionTestCase(unittest.TestCase):

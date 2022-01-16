@@ -1,12 +1,13 @@
 import numpy as np
 import abc
-
-from classes.dataset import Sample
-from functions.evaluations import uni_normal, multi_normal, normal_inverse_wishart, non_parametric, normal_inverse_chisquared
-from classes.parameters import Parameters
-from classes.estimators import Estimator
-from classes.normalizers import Normalizer
 from typing import Optional, Callable, Iterable
+
+from core.dataset import Sample
+from core.functions.evaluations import uni_normal, multi_normal, normal_inverse_wishart, non_parametric, normal_inverse_chisquared
+from analysis.datastructs import Parameters
+from core.estimators import Estimator
+from core.normalizers import Normalizer
+from core.utils import singular_check
 
 
 '''
@@ -133,6 +134,7 @@ class AggregationMine(Mine):
         loc = self._estimator.to_loc(self._parameters.attributes)
         return non_parametric.test_exponential(loc, self._estimator.to_loc(x), exponent, scale, func_aggr)
 
+    @singular_check('x')
     def eval_ttest(self, x: np.ndarray, func_aggr: Callable=np.product) -> float:
         loc = self._estimator.to_loc(self._parameters.attributes)
         return uni_normal.test_1sample(loc, x, func_aggr)

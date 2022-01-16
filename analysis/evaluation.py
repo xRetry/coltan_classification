@@ -1,13 +1,12 @@
 import numpy as np
 
-from functions import plotting, transformation, loss
-from classes.mines import Mine, AggregationMine
-from classes.parameters import Parameters
-from classes.dataset import Sample, Dataset
-from classes.normalizers import Normalizer
-from classes.estimators import MeanUniEstimator
+from analysis import plotting
+from core.functions import loss
+from core.mines import Mine
+from analysis.datastructs import Parameters
+from core.dataset import Sample, Dataset
 from analysis.model import ModelAnalyser
-from typing import List, Callable, Optional, Tuple, Dict
+from typing import List, Callable, Tuple, Dict
 
 
 class EvalFuncAnalyser:

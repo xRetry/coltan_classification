@@ -1,6 +1,7 @@
 import functools
+import warnings
+
 import numpy as np
-from typing import Dict, Tuple
 
 
 def verification(*shapes):
@@ -60,22 +61,28 @@ def verification(*shapes):
     return decorator
 
 
-def print_progressbar(progress: Dict[str, Tuple[int, int]], is_end: bool=True) -> None:
+def singular_check(*arg_names_check):
     """
-    Prints progress bars from items of dictionary. Format: {name: (current progress, full length)}.
+    Function decorator which raises a warning if Sample arguments have no variance and returns nan value.
     """
-    # Iterating through progress bars and building console output
-    output = ''
-    for k, v in progress.items():
-        # Determine amount of current and completed elements
-        n_load = int((v[0] + 1) / v[1] * 10)
-        n_full = int((v[0]) / v[1] * 10) if not is_end else n_load
-        # Creating line string
-        line = '=' * n_full + '-' * (n_load - n_full) + ' ' * (10 - n_load)
-        # Adding line string to console output
-        output += '{}: |{}| {}/{}\t\t'.format(k, line, v[0] + 1 if is_end else v[0], v[1])
-    # Printing output to console
-    print('\r{}'.format(output), end='')
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            # Getting argument names of function
+            arg_names = func.__code__.co_varnames
+            # Adding args to kwargs
+            kwargs.update({arg_names[i]: args[i] for i in range(len(args))})
+            # Iterating through arguments
+            for n in arg_names_check:
+                # Checking if the difference between max and min value is zero for any attribute
+                if np.any((np.max(kwargs[n], axis=0) - np.min(kwargs[n], axis=0)) == 0):
+                    # Raise warning and return nan
+                    warnings.warn('Sample contains singular attribute')
+                    return np.nan
+            result = func(**kwargs)
+            return result
+        return wrapper
+    return decorator
 
 
 if __name__ == '__main__':

@@ -1,8 +1,8 @@
 import numpy as np
-from classes.dataset import Dataset, Sample
-from classes.parameters import Parameters
-from classes.mines import Mine
-from functions import plotting
+from core.dataset import Dataset, Sample
+from analysis.datastructs import Parameters
+from core.mines import Mine
+from analysis import plotting
 from typing import List
 
 

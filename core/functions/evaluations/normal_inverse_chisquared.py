@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.special
 import scipy.stats
-from functions.utils import verification
+from core.utils import verification
 from typing import Callable
 
 

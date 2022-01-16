@@ -1,7 +1,7 @@
 import numpy as np
-from classes.dataset import Dataset
-from functions import plotting
-from functions import transformation
+from core.dataset import Dataset
+from analysis import plotting
+from core.functions import transformation
 from typing import Callable, Iterable, Optional
 import statsmodels.api as sm
 from sklearn.decomposition import PCA
@@ -25,14 +25,14 @@ class DatasetAnalyser:
     def plot_qq(self, attr_idx:int):
         plotting.plot_qq(self._dataset.attributes[0], attr_idx=attr_idx)
 
-    def test_normality(self, func_trans: Callable=transformation.none):
+    def test_normality(self, func_trans: Callable= transformation.none):
         p_vals_all = np.zeros((len(self._dataset), self._dataset.n_attributes))
         for i, sample in enumerate(self._dataset):
             statistic, p_vals = sm.stats.diagnostic.normal_ad(func_trans(sample.attributes))
             p_vals_all[i, :] = p_vals
         plotting.plot_norm_test(p_vals_all)
 
-    def pca_ratio(self, func_trans: Callable=transformation.none, n_components: Optional[int]=None):
+    def pca_ratio(self, func_trans: Callable= transformation.none, n_components: Optional[int]=None):
         """
         Plots the explained variance ratio for a PCA.
         """
@@ -44,7 +44,7 @@ class DatasetAnalyser:
         # Plotting variance ratio
         plotting.plot_pca_ratio(pca.explained_variance_ratio_)
 
-    def pca(self, func_trans: Callable=transformation.none):
+    def pca(self, func_trans: Callable= transformation.none):
         """
         Plots the first two principal components.
         """

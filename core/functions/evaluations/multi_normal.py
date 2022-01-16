@@ -1,8 +1,7 @@
 import numpy as np
 import scipy.stats
-import statsmodels.api as sm
 
-from functions.utils import verification
+from core.utils import verification
 
 
 @verification('a1', 'aa', 'a1')

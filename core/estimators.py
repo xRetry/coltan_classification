@@ -1,6 +1,6 @@
 import numpy as np
 import abc
-from functions import estimators
+from core.functions import estimators
 
 
 '''

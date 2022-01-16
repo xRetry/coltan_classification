@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.stats
 from scipy import spatial
-from functions.utils import verification
+from core.utils import verification
 from typing import Callable
 
 

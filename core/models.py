@@ -1,12 +1,17 @@
 import numpy as np
-import pandas as pd
 import abc
-from classes.mines import Mine
-from classes.parameters import Parameters
-from classes.dataset import Dataset, Sample
-from classes.normalizers import Normalizer
-from typing import List, Optional, Callable, Dict, Iterable
+from typing import Callable, Dict, Iterable, NamedTuple
 from sklearn.linear_model import LogisticRegression
+
+from core.mines import Mine
+from analysis.datastructs import Parameters
+from core.dataset import Dataset, Sample
+from core.normalizers import Normalizer
+
+
+class ClassificationResult(NamedTuple):
+    label: int
+    scores: np.ndarray
 
 
 class Model(abc.ABC):
@@ -15,7 +20,7 @@ class Model(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def classify(self, sample: Sample, return_scores: bool=False) -> int or (int, np.ndarray):
+    def classify(self, sample: Sample, return_summary: bool=False) -> int or ClassificationResult:
         """
         Classifies a sample.
         """
@@ -54,7 +59,7 @@ class MineModel(Model):
             )
         self._mines[mine_id].add_sample(sample)
 
-    def classify(self, sample: Sample, return_scores: bool=False) -> int or (int, np.ndarray):
+    def classify(self, sample: Sample, return_summary: bool = False) -> int or ClassificationResult:
         """
         Classifies a sample.
         """
@@ -67,8 +72,8 @@ class MineModel(Model):
             labels[i] = mine.status
         # Getting class prediction from mine scores
         prediction_label = self._parameters.func_selection(mine_scores, labels)
-        if return_scores:
-            return prediction_label, mine_scores
+        if return_summary:
+            return ClassificationResult(prediction_label, mine_scores)
         return prediction_label
 
 
@@ -105,15 +110,15 @@ class LogisticRegressionModel(Model):
         labels = data_train.labels
         self._logistic_model = LogisticRegression(random_state=0, solver='newton-cg').fit(attributes, labels)
 
-    def classify(self, sample: Sample, return_scores: bool=False) -> int or (int, np.ndarray):
+    def classify(self, sample: Sample, return_summary: bool = False) -> int or ClassificationResult:
         """
         Classifies a sample.
         """
         x = self._normalizer.transform(self._func_transform(sample.attributes))
         predictions = self._logistic_model.predict(x)
         prediction_label = 1 if (predictions == 1).sum() / len(predictions) > 0.5 else -1
-        if return_scores:
-            return prediction_label, predictions
+        if return_summary:
+            return ClassificationResult(prediction_label, predictions)
         return prediction_label
 
 
