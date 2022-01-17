@@ -4,6 +4,7 @@ from analysis import plotting, loss
 from core.mines import Mine, MineParameters
 from core.dataset import Sample, Dataset
 from analysis.model import ModelAnalyser
+import analysis.plotting.evaluation as plot
 from typing import List, Callable, Tuple, Dict
 
 
@@ -46,7 +47,7 @@ class EvalFuncAnalyser:
             key = '{}({})'.format(func.__qualname__, kwargs)
             results[key] = y
         # Plotting result
-        plotting.plot_eval_result(x1_grid, x2_grid, results)
+        plot.plot_eval_result(x1_grid, x2_grid, results)
 
     @staticmethod
     def mine_shape(mine_params: MineParameters or List[MineParameters],
@@ -102,7 +103,7 @@ class EvalFuncAnalyser:
         if not show_sample:
             attr_test = None
         # Plotting result
-        plotting.plot_eval_result(x1_mesh, x2_mesh, result, sample_test=attr_test)
+        plot.plot_eval_result(x1_mesh, x2_mesh, result, sample_test=attr_test)
 
     @staticmethod
     def kwargs_loss(params: MineParameters, kwargs_vals: Dict[str, np.ndarray]):
@@ -125,7 +126,7 @@ class EvalFuncAnalyser:
             for i in range(len(kw_vals[idx_range])):
                 conf_int = ModelAnalyser.cross_validate(params, dataset, 0.2, return_confint=True)[0]
                 accs[i, :] = conf_int
-            plotting.plot_kwargs_accs({kw_keys[idx_range]: kw_vals[idx_range]}, accs)
+            plot.plot_kwargs_accs({kw_keys[idx_range]: kw_vals[idx_range]}, accs)
         # Creating and iterating grid for two value ranges
         else:
             x_grid, y_grid = np.meshgrid(*kw_vals)
@@ -134,7 +135,7 @@ class EvalFuncAnalyser:
                 for j in range(len(x_grid[0])):
                     conf_int = ModelAnalyser.cross_validate(params, dataset, 0.2, return_confint=True)
                     loss_grid[i, j] = np.mean(conf_int)
-            plotting.plot_kwargs_accs({kw_keys[0]: x_grid, kw_keys[1]: y_grid}, loss_grid)
+            plot.plot_kwargs_accs({kw_keys[0]: x_grid, kw_keys[1]: y_grid}, loss_grid)
 
     @staticmethod
     def _create_mine(MineClass: type(Mine), mine_params: MineParameters) -> Mine:

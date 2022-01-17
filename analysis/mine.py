@@ -1,9 +1,10 @@
-import numpy as np
-from core.dataset import Dataset, Sample
-
-from core.mines import Mine, MineParameters
-from analysis import plotting
 from typing import List
+
+import numpy as np
+
+from core.dataset import Dataset, Sample
+from core.mines import Mine, MineParameters
+import analysis.plotting.mine as plot
 
 
 class MineAnalyser:
@@ -23,7 +24,7 @@ class MineAnalyser:
             mine.add_sample(sample)
             mine_params.append(mine.parameters)
         # Plotting the mine parameters over time
-        plotting.plot_progression(mine_params)
+        plot.plot_progression(mine_params)
 
     @staticmethod
     def evaluation(MineClass: type(Mine), mine_params: MineParameters):
@@ -45,9 +46,9 @@ class MineAnalyser:
             if sample.mine_id == mine_id_selected:
                 has_sample[i] = True
             eval_values[i] = mine.eval_sample(sample)
-            labels[i] = sample.proportional_score
+            labels[i] = sample.label
         # Plot the result
-        plotting.plot_mine_evaluation(eval_values, labels, has_sample)
+        plot.plot_mine_evaluation(eval_values, labels, has_sample)
 
     @staticmethod
     def _select_mine_samples(dataset: Dataset) -> (List[Sample], str):
@@ -69,7 +70,7 @@ class MineAnalyser:
         mine = MineClass(
             coordinates=np.zeros(3),
             label=0,
-            mine_params=mine_params,
+            mine_parameters=mine_params,
         )
         return mine
 

@@ -1,6 +1,6 @@
 import numpy as np
 from core.dataset import Dataset
-from analysis import plotting
+import analysis.plotting.dataset as plot
 from core.functions import transformation
 from typing import Callable, Iterable, Optional
 import statsmodels.api as sm
@@ -15,22 +15,22 @@ class DatasetAnalyser:
 
     def plot_correlation(self):
         values = np.row_stack(self._dataset.attributes)
-        plotting.plot_correlation_matrix(values.T, self._dataset.attribute_labels)
+        plot.plot_correlation_matrix(values.T, self._dataset.attribute_labels)
 
     def plot_samples(self, attr_idx: int or Iterable[int], sample_idx: int or Iterable[int]):
         attr_values = self._dataset.attributes[sample_idx]
         attr_labels = self._dataset.attribute_labels
-        plotting.plot_samples(attr_values, attr_idx, attr_labels)
+        plot.plot_samples(attr_values, attr_idx, attr_labels)
 
     def plot_qq(self, attr_idx:int):
-        plotting.plot_qq(self._dataset.attributes[0], attr_idx=attr_idx)
+        plot.plot_qq(self._dataset.attributes[0], attr_idx=attr_idx)
 
     def test_normality(self, func_trans: Callable= transformation.none):
         p_vals_all = np.zeros((len(self._dataset), self._dataset.n_attributes))
         for i, sample in enumerate(self._dataset):
             statistic, p_vals = sm.stats.diagnostic.normal_ad(func_trans(sample.attributes))
             p_vals_all[i, :] = p_vals
-        plotting.plot_norm_test(p_vals_all)
+        plot.plot_norm_test(p_vals_all)
 
     def pca_ratio(self, func_trans: Callable= transformation.none, n_components: Optional[int]=None):
         """
@@ -42,7 +42,7 @@ class DatasetAnalyser:
         pca = PCA(n_components=n_components)
         pca.fit(data)
         # Plotting variance ratio
-        plotting.plot_pca_ratio(pca.explained_variance_ratio_)
+        plot.plot_pca_ratio(pca.explained_variance_ratio_)
 
     def pca(self, func_trans: Callable= transformation.none):
         """
@@ -53,7 +53,7 @@ class DatasetAnalyser:
         # Compute transformed data
         data_trans = PCA(n_components=2).fit_transform(data)
         # Plot transformed data
-        plotting.plot_pca(data_trans[:, 0], data_trans[:, 1], self._dataset.labels)
+        plot.plot_pca(data_trans[:, 0], data_trans[:, 1], self._dataset.labels)
 
 
 if __name__ == '__main__':
