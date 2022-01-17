@@ -8,6 +8,7 @@ import statsmodels.api as sm
 
 from core.dataset import Dataset, Sample
 from core.models import ModelParameters, Model
+from core.mines import MineParameters
 import analysis.plotting.model as plot
 from analysis.utils import console, logging
 
@@ -168,9 +169,9 @@ class ModelAnalyser:
         samples_train, samples_test = dataset.train_test_split(0.00001)
         model = ModelClass(model_params, samples_train)
         mine_labels = np.array([m._label for m in model._mines.values()])
-        prediction, score = model.classify(samples_test[0])
-        score_pos = score[mine_labels == 1]
-        score_neg = score[mine_labels == -1]
+        model_result = model.classify(samples_test[0], return_summary=True)
+        score_pos = model_result.score[mine_labels == 1]
+        score_neg = model_result.score[mine_labels == -1]
         print('Average Score\n\t1: {}\n\t-1: {}\n -> Label: {} (true: {})'.format(
             score_pos.mean(),
             score_neg.mean(),
@@ -185,7 +186,7 @@ class ModelAnalyser:
         ))
 
     @staticmethod
-    def params_generator(all_combinations=False, **kwargs):
+    def params_generator(all_combinations=False, **kwargs) -> (List[type(Model)], List[ModelParameters]):
         """
         Generates a list of Parameters from multiple parameters in form of a list.
         """
@@ -198,7 +199,7 @@ class ModelAnalyser:
             # Find the longest value list
             len_max = max([len(v) for v in kwargs.values()])
             # Iterating through max length of values
-            params = []
+            model_classes, params = [], []
             for i in range(len_max):
                 # Creating kwargs dict for Parameters creation
                 param_dict = {}
@@ -209,8 +210,29 @@ class ModelAnalyser:
                         param_dict[k] = v[i]
                     else:
                         param_dict[k] = v[0]
+                # Handle default values if no parameter provided
+                mine_kwargs = param_dict.get('mine_kwargs')
+                if mine_kwargs is None:
+                    mine_kwargs = dict()
+                eval_kwargs = param_dict.get('eval_kwargs')
+                if eval_kwargs is None:
+                    eval_kwargs = dict()
                 # Create Parameters and add to output
-                #params.append(Parameters(**param_dict))
+                model_classes.append(param_dict['ModelClass'])
+                params.append(
+                    ModelParameters(
+                        MineClass=param_dict['MineClass'],
+                        func_classification=param_dict['func_classification'],
+                        mine_params=MineParameters(
+                            func_transform=param_dict['func_transform'],
+                            func_eval=param_dict['func_eval'],
+                            NormalizerClass=param_dict['NormalizerClass'],
+                            EstimatorClass=param_dict['EstimatorClass'],
+                            mine_kwargs=mine_kwargs,
+                            eval_kwargs=eval_kwargs
+                        )
+                    )
+                )
         # Creates the Cartesian product of all values
         else:
             # Creating kwargs tuples with of (arg_name, arg_value)
@@ -223,7 +245,8 @@ class ModelAnalyser:
             combinations = list(itertools.product(*tuples))
             # Creating Parameters from kwargs tuples
             #params = [Parameters(**dict(c)) for c in combinations]
-        return params
+            raise NotImplementedError
+        return model_classes, params
 
     @staticmethod
     def _map_to_eval_parameters(inputs: Tuple[tuple, Tuple[np.ndarray, np.ndarray]]):
