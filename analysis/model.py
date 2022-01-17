@@ -1,4 +1,4 @@
-from typing import List, Callable, Optional, Tuple, Iterable, Dict, Sequence
+from typing import List, Callable, Optional, Tuple, Iterable, Sequence
 import itertools
 from multiprocessing import Pool
 from dataclasses import dataclass
@@ -8,7 +8,8 @@ import statsmodels.api as sm
 
 from core.dataset import Dataset, Sample
 from core.models import ModelParameters, Model
-from analysis import logging, plotting, progressbar
+import analysis.plotting.model as plot
+from analysis.utils import console, logging
 
 
 ####################
@@ -97,7 +98,7 @@ class CrossValResult:
 
 class ModelAnalyser:
     @staticmethod
-    def cross_validate(cv_params: CrossValParameters, progress_bar: Optional[progressbar.ProgressBar]=None) -> CrossValResult:
+    def cross_validate(cv_params: CrossValParameters, progress_bar: Optional[console.ProgressBar]=None) -> CrossValResult:
         """
         Cross-validates models with provided model parameters.
         """
@@ -106,7 +107,7 @@ class ModelAnalyser:
             cv_params.model_params = [cv_params.model_params]
         # Initializing dict for printing function
         if progress_bar is None:
-            progress_bar = progressbar.ProgressBar()
+            progress_bar = console.ProgressBar()
         # Creating sample generator
         sample_gen, n_folds = cv_params.dataset.cv_generator(cv_params.pct_test, shuffle=True)
         # Calculating the total amount of iterations
@@ -151,7 +152,7 @@ class ModelAnalyser:
         # Setting up data splits
         pct_test = np.linspace(0.1, 0.9, n_splits)
         # Setting up progress bar data
-        progress_bar = progressbar.ProgressBar()
+        progress_bar = console.ProgressBar()
         # Iterating through data splits
         cv_results = []
         for i, n in enumerate(pct_test):
@@ -159,7 +160,7 @@ class ModelAnalyser:
             cv_params.pct_test = n
             cv_results.append(ModelAnalyser.cross_validate(cv_params, progress_bar=progress_bar))
         # Plotting results
-        plotting.plot_cv_stepwise(pct_test, np.array([c.conf_ints for c in cv_results]), model_names=model_names)
+        plot.plot_cv_stepwise(pct_test, np.array([c.conf_ints for c in cv_results]), model_names=model_names)
 
     @staticmethod
     def mine_distances(ModelClass: type(Model), model_params: ModelParameters):
