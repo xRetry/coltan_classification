@@ -1,69 +1,135 @@
 from typing import List, Callable, Optional, Tuple, Iterable, Dict, Sequence
 import itertools
 from multiprocessing import Pool
+from dataclasses import dataclass
 
 import numpy as np
 import statsmodels.api as sm
 
 from core.dataset import Dataset, Sample
-from analysis.datastructs import Parameters, ProgressBarData, CrossValResult, ModelEvaluationParameters, ModelEvaluationResult
-from analysis import logging, plotting
+from core.models import ModelParameters, Model
+from analysis import logging, plotting, progressbar
 
 
-def print_progressbar(progress_data: ProgressBarData, postfix: str='', is_end: bool=True) -> None:
-    """
-    Prints progress bars from items of dictionary. Format: {name: (current progress, full length)}.
-    """
-    # Iterating through progress bars and building console output
-    output = ''
-    for k, v in progress_data.bars.items():
-        # Determine amount of current and completed elements
-        n_load = int((v[0] + 1) / v[1] * 10)
-        n_full = int((v[0]) / v[1] * 10) if not is_end else n_load
-        # Creating line string
-        line = '=' * n_full + '-' * (n_load - n_full) + ' ' * (10 - n_load)
-        # Adding line string to console output
-        output += '{}: |{}| {}/{}\t\t'.format(k, line, v[0] + 1 if is_end else v[0], v[1])
-    # Printing output to console
-    print('\r{}\t\t{}'.format(output, postfix), end='')
+####################
+#   DATACLASSES
+####################
+
+
+@dataclass
+class ModelEvaluationParameters:
+    ModelClass: type(Model)
+    eval_idx: int
+    model_params: ModelParameters
+    samples_train: Sequence[Sample]
+    samples_test: Sequence[Sample]
+
+
+@dataclass
+class ModelEvaluationResult(logging.Log):
+    eval_idx: int
+    samples_train: Sequence[Sample]
+    samples_test: Sequence[Sample]
+    predictions: np.ndarray
+    warnings: list
+    elapsed_time: float
+
+    def __init__(self, model_eval_params: ModelEvaluationParameters):
+        self.eval_idx = model_eval_params.eval_idx
+        self.samples_train = model_eval_params.samples_train
+        self.samples_test = model_eval_params.samples_test
+        self.predictions = np.zeros(len(self.samples_test))
+        self.warnings = []
+
+    @property
+    def labels(self):
+        return np.array([sample.label for sample in self.samples_test])
+
+
+@dataclass
+class CrossValParameters:
+    ModelClass: List[type(Model)]
+    model_params: List[ModelParameters]
+    dataset: Dataset
+    pct_test: float
+    func_loss: Callable
+
+
+@dataclass
+class CrossValResult:
+    cv_params: CrossValParameters
+    eval_params: List[ModelEvaluationParameters]
+    eval_results: List[List[ModelEvaluationResult]]
+    n_warnings: int
+    losses: List[List[np.ndarray]]
+    conf_ints: List[List[np.ndarray]]
+
+    def __init__(self, cv_parameters: CrossValParameters):
+        self.cv_params = cv_parameters
+        self.eval_results = [[] for p in cv_parameters.model_params]
+        self.losses = []
+        self.conf_ints = []
+        self.n_warnings = 0
+
+    def add_result(self, eval_result: ModelEvaluationResult):
+        self.n_warnings += len(eval_result.warnings)
+        self.eval_results[eval_result.eval_idx].append(eval_result)
+
+    @property
+    def predictions(self) -> List[np.ndarray]:
+        preds = []
+        for res_mdl in self.eval_results:
+            preds.append(np.array([res_fld.predictions for res_fld in res_mdl]))
+        return preds
+
+    @property
+    def labels(self) -> List[np.ndarray]:
+        lbls = []
+        for res_mdl in self.eval_results:
+            lbls.append(np.array([res_fld.labels for res_fld in res_mdl]))
+        return lbls
+
+
+############################
+#   ANALYSIS FUNCTIONS
+############################
 
 
 class ModelAnalyser:
     @staticmethod
-    def cross_validate(parameters: Parameters or List[Parameters], dataset: Dataset, pct_test: float,
-                       progress_data: Optional[ProgressBarData]=None) -> CrossValResult:
+    def cross_validate(cv_params: CrossValParameters, progress_bar: Optional[progressbar.ProgressBar]=None) -> CrossValResult:
         """
         Cross-validates models with provided model parameters.
         """
         # Wrapping parameters in list if not
-        if not isinstance(parameters, list or tuple):
-            parameters = [parameters]
+        if not isinstance(cv_params.model_params, list or tuple):
+            cv_params.model_params = [cv_params.model_params]
         # Initializing dict for printing function
-        if progress_data is None:
-            progress_data = ProgressBarData()
+        if progress_bar is None:
+            progress_bar = progressbar.ProgressBar()
         # Creating sample generator
-        sample_gen, n_folds = dataset.cv_generator(pct_test, shuffle=True)
+        sample_gen, n_folds = cv_params.dataset.cv_generator(cv_params.pct_test, shuffle=True)
         # Calculating the total amount of iterations
-        n_iter = n_folds * len(parameters)
+        n_iter = n_folds * len(cv_params.model_params)
         # Setting up lists for results
-        cv_result = CrossValResult(parameters)
+        cv_result = CrossValResult(cv_params)
         # Evaluating all folds and parameters
         with Pool(processes=4) as pool:
             eval_map = pool.imap_unordered(
             #eval_map = map(
                 ModelAnalyser._evaluate_model,
-                map(ModelAnalyser._map_to_eval_parameters, itertools.product(zip(parameters, range(len(parameters))), sample_gen))
+                map(ModelAnalyser._map_to_eval_parameters, itertools.product(zip(cv_params.ModelClass, cv_params.model_params, range(len(cv_params.model_params))), sample_gen))
             )
             for i in range(n_iter):
                 # Printing progress bar
-                progress_data.add_bar('Cross-Validation', i, n_iter)
-                print_progressbar(progress_data, postfix=f'Warnings: {cv_result.n_warnings}', is_end=False)
+                progress_bar.add_bar('Cross-Validation', i, n_iter)
+                progress_bar.print(postfix=f'Warnings: {cv_result.n_warnings}', is_end=False)
                 # Evaluating and storing result
                 eval_result = next(eval_map)
                 cv_result.add_result(eval_result)
                 # Printing progress bar
-                progress_data.add_bar('Cross-Validation', i, n_iter)
-                print_progressbar(progress_data, postfix=f'Warnings: {cv_result.n_warnings}')
+                progress_bar.add_bar('Cross-Validation', i, n_iter)
+                progress_bar.print(postfix=f'Warnings: {cv_result.n_warnings}')
         # Iterating through predictions
         for i, (labels, predictions) in enumerate(zip(cv_result.labels, cv_result.predictions)):
             # Computing confident interval of accuracy
@@ -73,32 +139,33 @@ class ModelAnalyser:
             cv_result.conf_ints.append(confint)
 
             # Computing loss from true labels and predictions
-            loss = ModelAnalyser._compute_loss(parameters[i].func_loss, labels, predictions)
+            loss = ModelAnalyser._compute_loss(cv_params.func_loss, labels, predictions)
             cv_result.losses.append(loss)
         return cv_result
 
     @staticmethod
-    def cross_validate_stepwise(parameters: Parameters or List[Parameters], dataset: Dataset, n_splits: int, model_names: Optional[Iterable[str]]=None) -> None:
+    def cross_validate_stepwise(cv_params: CrossValParameters, n_splits: int, model_names: Optional[Iterable[str]]=None) -> None:
         """
         Shows model loss for different amount of training samples.
         """
         # Setting up data splits
         pct_test = np.linspace(0.1, 0.9, n_splits)
         # Setting up progress bar data
-        progress_data = ProgressBarData()
+        progress_bar = progressbar.ProgressBar()
         # Iterating through data splits
         cv_results = []
         for i, n in enumerate(pct_test):
-            progress_data.add_bar('Step', i, len(pct_test))
-            cv_results.append(ModelAnalyser.cross_validate(parameters, dataset, n, progress_data=progress_data))
+            progress_bar.add_bar('Step', i, len(pct_test))
+            cv_params.pct_test = n
+            cv_results.append(ModelAnalyser.cross_validate(cv_params, progress_bar=progress_bar))
         # Plotting results
         plotting.plot_cv_stepwise(pct_test, np.array([c.conf_ints for c in cv_results]), model_names=model_names)
 
     @staticmethod
-    def mine_distances(parameters: Parameters):
+    def mine_distances(ModelClass: type(Model), model_params: ModelParameters):
         dataset = Dataset()
         samples_train, samples_test = dataset.train_test_split(0.00001)
-        model = parameters.ModelClass(parameters, samples_train)
+        model = ModelClass(model_params, samples_train)
         mine_labels = np.array([m._label for m in model._mines.values()])
         prediction, score = model.classify(samples_test[0])
         score_pos = score[mine_labels == 1]
@@ -142,7 +209,7 @@ class ModelAnalyser:
                     else:
                         param_dict[k] = v[0]
                 # Create Parameters and add to output
-                params.append(Parameters(**param_dict))
+                #params.append(Parameters(**param_dict))
         # Creates the Cartesian product of all values
         else:
             # Creating kwargs tuples with of (arg_name, arg_value)
@@ -154,27 +221,28 @@ class ModelAnalyser:
             # Cartesian product of kwargs tuples
             combinations = list(itertools.product(*tuples))
             # Creating Parameters from kwargs tuples
-            params = [Parameters(**dict(c)) for c in combinations]
+            #params = [Parameters(**dict(c)) for c in combinations]
         return params
 
     @staticmethod
-    def _map_to_eval_parameters(inputs: Tuple[Tuple[Parameters, int], Tuple[np.ndarray, np.ndarray]]):
+    def _map_to_eval_parameters(inputs: Tuple[tuple, Tuple[np.ndarray, np.ndarray]]):
         """ Function to map the generator of evaluation inputs to a class """
         return ModelEvaluationParameters(
-            parameters=inputs[0][0],
-            eval_idx=inputs[0][1],
+            ModelClass=inputs[0][0],
+            model_params=inputs[0][1],
+            eval_idx=inputs[0][2],
             samples_train=inputs[1][0],
             samples_test=inputs[1][1]
         )
 
     @staticmethod
-    def _evaluate_model(inputs: ModelEvaluationParameters) -> ModelEvaluationResult:
+    def _evaluate_model(eval_params: ModelEvaluationParameters) -> ModelEvaluationResult:
         """ Wrapper function for model evaluation to be used in maps. """
-        with logging.Logger(ModelEvaluationResult(inputs)) as eval_result:
+        with logging.Logger(ModelEvaluationResult(eval_params)) as eval_result:
             # Creating model and test values
-            model = inputs.parameters.ModelClass(inputs.parameters, inputs.samples_train)
+            model = eval_params.ModelClass(eval_params.model_params, eval_params.samples_train)
             # Iterating and evaluating all test values
-            for k, sample_test in enumerate(inputs.samples_test):
+            for k, sample_test in enumerate(eval_params.samples_test):
                 eval_result.predictions[k] = model.classify(sample_test)
         return eval_result
 

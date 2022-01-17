@@ -1,14 +1,14 @@
 import numpy as np
 from core.dataset import Dataset, Sample
-from analysis.datastructs import Parameters
-from core.mines import Mine
+
+from core.mines import Mine, MineParameters
 from analysis import plotting
 from typing import List
 
 
 class MineAnalyser:
     @staticmethod
-    def parameter_progression(parameters: Parameters) -> None:
+    def parameter_progression(MineClass: type(Mine), mine_params: MineParameters) -> None:
         """
         Progressively adds samples to mine and collects the parameters. Plots the result.
         """
@@ -16,7 +16,7 @@ class MineAnalyser:
         dataset = Dataset()
         samples_mine_selected, _ = MineAnalyser._select_mine_samples(dataset)
         # Build mine
-        mine = MineAnalyser._create_mine(parameters)
+        mine = MineAnalyser._create_mine(MineClass, mine_params)
         # Adding samples to mine and collecting parameters
         mine_params = []
         for sample in samples_mine_selected:
@@ -26,14 +26,14 @@ class MineAnalyser:
         plotting.plot_progression(mine_params)
 
     @staticmethod
-    def evaluation(parameters: Parameters):
+    def evaluation(MineClass: type(Mine), mine_params: MineParameters):
         """
         Evaluates all samples using a mine and plots the result.
         """
         # Load dataset
         dataset = Dataset()
         # Create mine
-        mine = MineAnalyser._create_mine(parameters)
+        mine = MineAnalyser._create_mine(MineClass, mine_params)
         # Get samples to add to mine
         samples_mine_selected, mine_id_selected = MineAnalyser._select_mine_samples(dataset)
         # Add selected samples to mine
@@ -62,15 +62,14 @@ class MineAnalyser:
         return samples_mine_selected, mine_ids_unique[idx_selected]
 
     @staticmethod
-    def _create_mine(parameters: Parameters) -> Mine:
+    def _create_mine(MineClass: type(Mine), mine_params: MineParameters) -> Mine:
         """
         Builds mine according to provided mine parameters.
         """
-        mine = parameters.MineClass(
+        mine = MineClass(
             coordinates=np.zeros(3),
-            status=0,
-            parameters=parameters,
-            **parameters.mine_kwargs
+            label=0,
+            mine_params=mine_params,
         )
         return mine
 

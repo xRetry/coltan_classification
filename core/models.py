@@ -1,26 +1,35 @@
-import numpy as np
-import abc
 from typing import Callable, Dict, Iterable, NamedTuple
+import abc
+from dataclasses import dataclass, field
+
+import numpy as np
 from sklearn.linear_model import LogisticRegression
 
-from core.mines import Mine
-from analysis.datastructs import Parameters
+from core.mines import Mine, MineParameters
 from core.dataset import Dataset, Sample
 from core.normalizers import Normalizer
 
 
-class ClassificationResult(NamedTuple):
+@dataclass
+class ModelParameters:
+    MineClass: type(Mine)
+    mine_params: MineParameters
+    func_classification: Callable
+
+
+@dataclass
+class ModelResult(NamedTuple):
     label: int
     scores: np.ndarray
 
 
 class Model(abc.ABC):
     @abc.abstractmethod
-    def __init__(self, parameters: Parameters, samples: Iterable[Sample]):
+    def __init__(self, parameters: ModelParameters, samples: Iterable[Sample]):
         pass
 
     @abc.abstractmethod
-    def classify(self, sample: Sample, return_summary: bool=False) -> int or ClassificationResult:
+    def classify(self, sample: Sample, return_summary: bool=False) -> int or ModelResult:
         """
         Classifies a sample.
         """
@@ -29,12 +38,12 @@ class Model(abc.ABC):
 
 class MineModel(Model):
     _mines: Dict[str, Mine]
-    _parameters: Parameters
+    _model_params: ModelParameters
 
-    def __init__(self, parameters: Parameters, samples: Iterable[Sample]):
-        super().__init__(parameters, samples)
+    def __init__(self, model_parameters: ModelParameters, samples: Iterable[Sample]):
+        super().__init__(model_parameters, samples)
         self._mines = {}
-        self._parameters = parameters
+        self._model_params = model_parameters
         self._create_mines(samples)
 
     def _create_mines(self, samples: Iterable[Sample]) -> None:
@@ -51,15 +60,14 @@ class MineModel(Model):
         mine_id = sample.mine_id
         mine = self._mines.get(mine_id)
         if mine is None:
-            self._mines[mine_id] = self._parameters.MineClass(
+            self._mines[mine_id] = self._model_params.MineClass(
                 coordinates=sample.coordinates,
                 label=sample.label,
-                parameters=self._parameters,
-                **self._parameters.mine_kwargs
+                mine_parameters=self._model_params.mine_params,
             )
         self._mines[mine_id].add_sample(sample)
 
-    def classify(self, sample: Sample, return_summary: bool = False) -> int or ClassificationResult:
+    def classify(self, sample: Sample, return_summary: bool = False) -> int or ModelResult:
         """
         Classifies a sample.
         """
@@ -71,9 +79,9 @@ class MineModel(Model):
             mine_scores[i] = mine.eval_sample(sample)
             labels[i] = mine.status
         # Getting class prediction from mine scores
-        prediction_label = self._parameters.func_selection(mine_scores, labels)
+        prediction_label = self._model_params.func_classification(mine_scores, labels)
         if return_summary:
-            return ClassificationResult(prediction_label, mine_scores)
+            return ModelResult(prediction_label, mine_scores)
         return prediction_label
 
 
@@ -84,11 +92,10 @@ class LabelModel(MineModel):
         """
         mine = self._mines.get(str(sample.label))
         if mine is None:
-            self._mines[str(sample.label)] = self._parameters.MineClass(
+            self._mines[str(sample.label)] = self._model_params.MineClass(
                 coordinates=sample.coordinates,
                 label=sample.label,
-                parameters=self._parameters,
-                **self._parameters.mine_kwargs
+                parameters=self._model_params,
             )
         self._mines[str(sample.label)].add_sample(sample)
 
@@ -98,10 +105,10 @@ class LogisticRegressionModel(Model):
     _normalizer: Normalizer
     _func_transform: Callable
 
-    def __init__(self, parameters: Parameters, samples: Iterable[Sample]):
-        super().__init__(parameters, samples)
-        self._func_transform = parameters.func_transform
-        self._normalizer = parameters.NormalizerClass()
+    def __init__(self, model_parameters: ModelParameters, samples: Iterable[Sample]):
+        super().__init__(model_parameters, samples)
+        self._func_transform = model_parameters.mine_params.func_transform
+        self._normalizer = model_parameters.mine_params.NormalizerClass()
 
         data_train = Dataset(samples=samples)
         data_trans = self._func_transform(np.concatenate(data_train.attributes))
@@ -110,7 +117,7 @@ class LogisticRegressionModel(Model):
         labels = data_train.labels
         self._logistic_model = LogisticRegression(random_state=0, solver='newton-cg').fit(attributes, labels)
 
-    def classify(self, sample: Sample, return_summary: bool = False) -> int or ClassificationResult:
+    def classify(self, sample: Sample, return_summary: bool = False) -> int or ModelResult:
         """
         Classifies a sample.
         """
@@ -118,7 +125,7 @@ class LogisticRegressionModel(Model):
         predictions = self._logistic_model.predict(x)
         prediction_label = 1 if (predictions == 1).sum() / len(predictions) > 0.5 else -1
         if return_summary:
-            return ClassificationResult(prediction_label, predictions)
+            return ModelResult(prediction_label, predictions)
         return prediction_label
 
 

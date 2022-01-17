@@ -1,6 +1,8 @@
-import numpy as np
-from core.utils import verification
 from typing import Optional
+
+import numpy as np
+
+from core.utils import verification
 
 
 @verification('ba')

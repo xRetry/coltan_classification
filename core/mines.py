@@ -1,40 +1,54 @@
-import numpy as np
+from typing import Optional, Callable, Iterable, Sequence
 import abc
-from typing import Optional, Callable, Iterable
+from dataclasses import dataclass, field
+
+import numpy as np
 
 from core.dataset import Sample
 from core.functions.evaluations import uni_normal, multi_normal, normal_inverse_wishart, non_parametric, normal_inverse_chisquared
-from analysis.datastructs import Parameters
-from core.estimators import Estimator
-from core.normalizers import Normalizer
+from core.estimators import Estimator, MeanUniEstimator
+from core.normalizers import Normalizer, NoNormalizer
 from core.utils import singular_check
 
 
-'''
-    ABSTRACT CLASS
-'''
+###############
+# DATACLASSES #
+###############
+
+
+@dataclass
+class MineParameters:
+    func_transform: Callable
+    func_eval: Callable
+    NormalizerClass: type(Normalizer) = NoNormalizer
+    EstimatorClass: type(Estimator) = MeanUniEstimator
+    eval_kwargs: dict = field(default_factory=dict)
+    mine_kwargs: dict = field(default_factory=dict)
+
+
+##################
+# ABSTRACT CLASS #
+##################
 
 
 class Mine(abc.ABC):
     _coordinates: np.ndarray
     _label: int
+    _mine_params: MineParameters
     _normalizer: Normalizer
-    _func_transform: Callable
-    _func_eval: Callable
-    _eval_args: dict
     _estimator: Estimator
 
-    def __init__(self, coordinates: Iterable, label: int, parameters: Parameters):
-        self._coordinates = np.array(coordinates)
+    def __init__(self, mine_parameters: MineParameters, label: int, coordinates: Optional[np.ndarray]=None):
+        if coordinates is None:
+            coordinates = np.zeros(3)
+        self._coordinates = coordinates
         self._label = label
-        self._normalizer = parameters.NormalizerClass()
-        self._func_transform = parameters.func_transform
-        self._func_eval = parameters.func_eval
-        self._eval_args = parameters.eval_kwargs
-        self._estimator = parameters.EstimatorClass
+        self._mine_params = mine_parameters
+        self._normalizer = mine_parameters.NormalizerClass()
+        self._estimator = mine_parameters.EstimatorClass()
 
     def add_sample(self, sample: Sample) -> None:
-        x_trans = self._func_transform(sample.attributes)
+        x_trans = self._mine_params.func_transform(sample.attributes)
         if not self._normalizer.is_fitted:
             self._normalizer.fit(x_trans)
         self._add_sample(self._normalizer.transform(x_trans))
@@ -44,12 +58,12 @@ class Mine(abc.ABC):
         pass
 
     def eval_sample(self, sample: Sample) -> float:
-        attr_values = self._normalizer.transform(self._func_transform(sample.attributes))
-        return self._func_eval(self, attr_values, **self._eval_args)
+        attr_values = self._normalizer.transform(self._mine_params.func_transform(sample.attributes))
+        return self._mine_params.func_eval(self, attr_values, **self._mine_params.eval_kwargs)
 
     @property
     def coordinates(self) -> np.ndarray:
-        return self._coordinates
+        return np.array(self._coordinates)
 
     @property
     def status(self) -> int:
@@ -61,9 +75,9 @@ class Mine(abc.ABC):
         pass
 
 
-''' 
-    SUBCLASSES
-'''
+##############
+# SUBCLASSES #
+##############
 
 
 class OrigMine(Mine):
@@ -197,10 +211,10 @@ class BayesianSimpleMine(Mine):
     _mean: np.ndarray
     _std: np.ndarray
 
-    def __init__(self, mean: np.ndarray, std: np.ndarray, **kwargs):
-        super().__init__(**kwargs)
-        self._mean = mean
-        self._std = std
+    def __init__(self, mine_parameters: MineParameters, label: int, coordinates: Optional[np.ndarray] = None):
+        super().__init__(mine_parameters, label, coordinates)
+        self._mean = self._mine_params.mine_kwargs['mean']
+        self._std = self._mine_params.mine_kwargs['std']
 
     def _add_sample(self, values: np.ndarray) -> None:
         std_known = np.ones(len(self._mean))
@@ -244,12 +258,12 @@ class BayesianUniMine(Mine):
     _kappa: int
     _nu: int
 
-    def __init__(self, loc, scale, kappa, nu, **kwargs):
-        super().__init__(**kwargs)
-        self._loc = loc
-        self._scale = scale
-        self._kappa = kappa
-        self._nu = nu
+    def __init__(self, mine_parameters: MineParameters, label: int, coordinates: Optional[np.ndarray] = None):
+        super().__init__(mine_parameters, label, coordinates)
+        self._loc = self._mine_params.mine_kwargs['loc']
+        self._scale = self._mine_params.mine_kwargs['scale']
+        self._kappa = self._mine_params.mine_kwargs['kappa']
+        self._nu = self._mine_params.mine_kwargs['nu']
 
     def _add_sample(self, values: np.ndarray) -> None:
         self._loc, self._scale, self._kappa, self._nu = normal_inverse_chisquared.posterior(

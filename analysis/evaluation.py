@@ -1,9 +1,7 @@
 import numpy as np
 
-from analysis import plotting
-from core.functions import loss
-from core.mines import Mine
-from analysis.datastructs import Parameters
+from analysis import plotting, loss
+from core.mines import Mine, MineParameters
 from core.dataset import Sample, Dataset
 from analysis.model import ModelAnalyser
 from typing import List, Callable, Tuple, Dict
@@ -51,7 +49,7 @@ class EvalFuncAnalyser:
         plotting.plot_eval_result(x1_grid, x2_grid, results)
 
     @staticmethod
-    def mine_shape(mine_params: Parameters or List[Parameters],
+    def mine_shape(mine_params: MineParameters or List[MineParameters],
                    x1_range: Tuple[float, float]=(-1, 1),x2_range: Tuple[float, float]=(-1, 1),
                    std: float=1, n_train: int=3, n_sample: int=20, show_sample: bool=False):
         """
@@ -107,7 +105,7 @@ class EvalFuncAnalyser:
         plotting.plot_eval_result(x1_mesh, x2_mesh, result, sample_test=attr_test)
 
     @staticmethod
-    def kwargs_loss(params: Parameters, kwargs_vals: Dict[str, np.ndarray]):
+    def kwargs_loss(params: MineParameters, kwargs_vals: Dict[str, np.ndarray]):
         """
         Computes the loss of a function with kwargs and plots the result
         """
@@ -139,14 +137,14 @@ class EvalFuncAnalyser:
             plotting.plot_kwargs_accs({kw_keys[0]: x_grid, kw_keys[1]: y_grid}, loss_grid)
 
     @staticmethod
-    def _create_mine(params: Parameters) -> Mine:
+    def _create_mine(MineClass: type(Mine), mine_params: MineParameters) -> Mine:
         """
         Creates a mine from an evaluation function.
         """
-        mine = params.MineClass(
+        mine = MineClass(
             coordinates=np.zeros(3),
             status=0,
-            parameters=params
+            mine_parameters=mine_params
         )
         return mine
 

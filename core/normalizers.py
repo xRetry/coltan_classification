@@ -1,6 +1,6 @@
-import numpy as np
 import abc
-from typing import Optional
+
+import numpy as np
 
 from sklearn.preprocessing import StandardScaler
 
