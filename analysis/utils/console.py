@@ -1,7 +1,5 @@
-from typing import Dict, Tuple, List
+from typing import Dict, Tuple
 from dataclasses import dataclass, field
-
-#from analysis.model import CrossValResult
 
 
 @dataclass
