@@ -1,11 +1,13 @@
+from typing import List, Callable, Tuple, Dict
+
 import numpy as np
 
 from analysis import plotting, loss
 from core.mines import Mine, MineParameters
 from core.dataset import Sample, Dataset
-from analysis.model import ModelAnalyser
+from analysis.model import ModelAnalyser, CrossValParameters
+from analysis.utils import console
 import analysis.plotting.evaluation as plot
-from typing import List, Callable, Tuple, Dict
 
 
 class EvalFuncAnalyser:
@@ -106,7 +108,7 @@ class EvalFuncAnalyser:
         plot.plot_eval_result(x1_mesh, x2_mesh, result, sample_test=attr_test)
 
     @staticmethod
-    def kwargs_loss(params: MineParameters, kwargs_vals: Dict[str, np.ndarray]):
+    def kwargs_loss(params: CrossValParameters, kwargs_vals: Dict[str, np.ndarray]):
         """
         Computes the loss of a function with kwargs and plots the result
         """
@@ -119,22 +121,28 @@ class EvalFuncAnalyser:
         kw_keys = list(kwargs_vals.keys())
         # Checking if kwargs are value ranges
         is_range = [True if isinstance(v, np.ndarray) else False for v in kw_vals]
+        # Setting up progress bar data
+        progress_bar = console.ProgressBar()
         # Iterating over range if only one value range
         if sum(is_range) == 1:
             idx_range = np.where(is_range)[0][0]
             accs = np.zeros((len(kw_vals[idx_range]), 2), dtype=float)
-            for i in range(len(kw_vals[idx_range])):
-                conf_int = ModelAnalyser.cross_validate(params, dataset, 0.2, return_confint=True)[0]
-                accs[i, :] = conf_int
+            n_iter = len(kw_vals[idx_range])
+            for i in range(n_iter):
+                progress_bar.add_bar('KW-Args', i, n_iter)
+                cv_result = ModelAnalyser.cross_validate(params, progress_bar=progress_bar)
+                accs[i, :] = cv_result.conf_ints[0]
             plot.plot_kwargs_accs({kw_keys[idx_range]: kw_vals[idx_range]}, accs)
         # Creating and iterating grid for two value ranges
         else:
             x_grid, y_grid = np.meshgrid(*kw_vals)
             loss_grid = np.zeros_like(x_grid, dtype=float)
-            for i in range(len(x_grid)):
-                for j in range(len(x_grid[0])):
-                    conf_int = ModelAnalyser.cross_validate(params, dataset, 0.2, return_confint=True)
-                    loss_grid[i, j] = np.mean(conf_int)
+            n_i, n_j = len(x_grid), len(x_grid[0])
+            for i in range(n_i):
+                for j in range(n_j):
+                    progress_bar.add_bar('Grid', i*n_j+j, n_i*n_j)
+                    cv_result = ModelAnalyser.cross_validate(params, progress_bar=progress_bar)
+                    loss_grid[i, j] = np.mean(cv_result.conf_ints)
             plot.plot_kwargs_accs({kw_keys[0]: x_grid, kw_keys[1]: y_grid}, loss_grid)
 
     @staticmethod
