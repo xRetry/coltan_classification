@@ -13,9 +13,9 @@ import analysis.plotting.model as plot
 from analysis.utils import console, logging
 
 
-####################
-#   DATACLASSES
-####################
+###############
+# DATACLASSES #
+###############
 
 
 @dataclass
@@ -92,9 +92,9 @@ class CrossValResult:
         return lbls
 
 
-############################
-#   ANALYSIS FUNCTIONS
-############################
+######################
+# ANALYSIS FUNCTIONS #
+######################
 
 
 class ModelAnalyser:
@@ -116,7 +116,7 @@ class ModelAnalyser:
         # Setting up lists for results
         cv_result = CrossValResult(cv_params)
         # Evaluating all folds and parameters
-        with Pool(processes=4) as pool:
+        with Pool(processes=6) as pool:
             eval_map = pool.imap_unordered(
             #eval_map = map(
                 ModelAnalyser._evaluate_model,
@@ -160,6 +160,7 @@ class ModelAnalyser:
             progress_bar.add_bar('Step', i, len(pct_test))
             cv_params.pct_test = n
             cv_results.append(ModelAnalyser.cross_validate(cv_params, progress_bar=progress_bar))
+        console.print_cv_summary(cv_results)
         # Plotting results
         plot.plot_cv_stepwise(pct_test, np.array([c.conf_ints for c in cv_results]), model_names=model_names)
 

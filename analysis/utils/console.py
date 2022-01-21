@@ -1,5 +1,7 @@
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List
 from dataclasses import dataclass, field
+
+#from analysis.model import CrossValResult
 
 
 @dataclass
@@ -26,6 +28,35 @@ class ProgressBar:
             output += '{}: |{}| {}/{}\t\t'.format(k, line, v[0] + 1 if is_end else v[0], v[1])
         # Printing output to console
         print('\r{}\t\t{}'.format(output, postfix), end='')
+
+
+def print_cv_summary(cv_results_steps: list):
+    warnings = []
+    n_longest = 15
+    for s, cv_results in enumerate(cv_results_steps):
+        warnings.append([])
+        for m, eval_result_model in enumerate(cv_results.eval_results):
+            warnings[s].append({})
+            for eval_result in eval_result_model:
+                for w in eval_result.warnings:
+                    msg = w.message.args[0]
+                    n = warnings[s][m].get(msg)
+                    if n is None:
+                        n = 0
+                    warnings[s][m][msg] = n + 1
+                    if len(msg) > n_longest:
+                        n_longest = len(msg)+len(str(n+1))
+
+    n_spacer = (n_longest + 10 - 9) // 2 + 1
+    spacer = ''.join(['=' for i in range(n_spacer)])
+    print('\n{} Summary {}'.format(spacer, spacer))
+    for s in range(len(warnings)):
+        print('Step {}:'.format(s+1))
+        for m in range(len(warnings[s])):
+            print('   Model {}:'.format(m+1))  # 3
+            for msg, n in warnings[s][m].items():
+                print('      {} - x{}'.format(msg, n))
+    print('{}'.format(''.join(['=' for i in range(n_spacer * 2 + 9)])))
 
 
 if __name__ == '__main__':
