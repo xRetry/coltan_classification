@@ -114,7 +114,7 @@ class LogisticRegressionModel(Model):
         data_trans = self._func_transform(np.concatenate(data_train.attributes))
         self._normalizer.fit(data_trans)
         attributes = self._normalizer.transform(data_trans)
-        labels = data_train.labels
+        labels = data_train.labels_analysis
         self._logistic_model = LogisticRegression(random_state=0, solver='newton-cg').fit(attributes, labels)
 
     def classify(self, sample: Sample, return_summary: bool = False) -> int or ModelResult:

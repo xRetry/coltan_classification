@@ -53,7 +53,7 @@ class DatasetAnalyser:
         # Compute transformed data
         data_trans = PCA(n_components=2).fit_transform(data)
         # Plot transformed data
-        plot.plot_pca(data_trans[:, 0], data_trans[:, 1], self._dataset.labels)
+        plot.plot_pca(data_trans[:, 0], data_trans[:, 1], self._dataset.labels_analysis)
 
 
 if __name__ == '__main__':

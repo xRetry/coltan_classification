@@ -33,12 +33,15 @@ class Dataset:
     _samples: np.ndarray
     _attr_labels: np.ndarray
 
-    def __init__(self, file:Optional[str]='\\data\\ctpa-data.csv', samples: Optional[Iterable[Sample]]=None):
+    def __init__(self, file:Optional[str]='\\data\\ctpa-data.csv', samples: Optional[Iterable[Sample]]=None, group_by_mine: bool=False):
         if file is not None:
             self._load_from_file(file)
         elif samples is not None:
             self._samples = np.array(samples)
             self._attr_labels = np.array([])
+
+        if group_by_mine:
+            self._samples = self._group_by_mine(self._samples)
 
     def _load_from_file(self, file) -> None:
         """
@@ -80,14 +83,14 @@ class Dataset:
         self._attr_labels = attr_labels
 
     def train_test_split(self, proportion_test: float, shuffle: bool=True) -> (np.ndarray, np.ndarray):
-        cv_gen = self.cv_generator(proportion_test, shuffle=shuffle)
+        cv_gen, _ = self.cv_generator(proportion_test, shuffle=shuffle)
         return next(cv_gen)
 
     def cv_generator(self, proportion_test:float, shuffle: bool=True) -> (Generator[Tuple[np.ndarray, np.ndarray], None, None], int):
         """
         Generates train and test samples for cross-validation according to proportion of test samples.
         """
-        # Copy samples
+        # Getting samples for cross-validation
         samples_cv = np.array(self._samples)
         # Shuffle data if wanted
         if shuffle:
@@ -95,6 +98,29 @@ class Dataset:
         n_folds, n_test, bool_array = self._gen_setup(len(samples_cv), proportion_test)
         gen = self._cv_generator(samples_cv, n_folds, n_test, bool_array)
         return gen, n_folds
+
+    @staticmethod
+    def _group_by_mine(samples: np.ndarray) -> np.ndarray:
+        mines = {}
+        for sample in samples:
+            mine_samples = mines.get(sample.mine_id)
+            if mine_samples is None:
+                mines[sample.mine_id] = []
+            mines[sample.mine_id].append(sample)
+        mines = list(mines.values())
+
+        samples_grouped = []
+        for mine in mines:
+            samples_grouped.append(
+                Sample(
+                    attributes=np.row_stack([s.attributes for s in mine]),
+                    label=mine[0].label,
+                    coordinates=mine[0].coordinates,
+                    sample_id=0,
+                    mine_id=mine[0].mine_id
+                )
+            )
+        return np.array(samples_grouped)
 
     @staticmethod
     def _gen_setup(n_samples: int, pct_test: float):
@@ -152,7 +178,7 @@ class Dataset:
         return self._samples[0].n_attributes
 
     @property
-    def labels(self) -> np.ndarray:
+    def labels_analysis(self) -> np.ndarray:
         lbls = []
         for sample in self._samples:
             lbls.append(np.repeat(sample.label, len(sample.attributes)))
