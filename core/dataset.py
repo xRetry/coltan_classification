@@ -101,6 +101,10 @@ class Dataset:
 
     @staticmethod
     def _group_by_mine(samples: np.ndarray) -> np.ndarray:
+        """
+        Groups all samples of a mine into one sample.
+        """
+        # Group samples by mines
         mines = {}
         for sample in samples:
             mine_samples = mines.get(sample.mine_id)
@@ -108,7 +112,7 @@ class Dataset:
                 mines[sample.mine_id] = []
             mines[sample.mine_id].append(sample)
         mines = list(mines.values())
-
+        # Combine grouped samples into a new one
         samples_grouped = []
         for mine in mines:
             samples_grouped.append(
