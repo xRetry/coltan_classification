@@ -162,7 +162,9 @@ class ModelAnalyser:
             cv_results.append(ModelAnalyser.cross_validate(cv_params, progress_bar=progress_bar))
         console.print_cv_summary(cv_results)
         # Plotting results
-        plot.plot_cv_stepwise(pct_test, np.array([c.conf_ints for c in cv_results]), model_names=model_names)
+        plot.plot_cv(pct_test, np.array([c.conf_ints for c in cv_results]), model_names=model_names)
+        for i, cv_result in enumerate(cv_results):
+            plot.plot_cv_grid(cv_result, model_names, f'Test Proportion: {str(pct_test[i])}')
 
     @staticmethod
     def mine_distances(ModelClass: type(Model), model_params: ModelParameters):
