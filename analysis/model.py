@@ -226,6 +226,7 @@ class ModelAnalyser:
                     ModelParameters(
                         MineClass=param_dict['MineClass'],
                         func_classification=param_dict['func_classification'],
+                        threshold=param_dict['threshold'],
                         mine_params=MineParameters(
                             func_transform=param_dict['func_transform'],
                             func_eval=param_dict['func_eval'],

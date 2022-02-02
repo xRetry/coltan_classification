@@ -15,6 +15,7 @@ class ModelParameters:
     MineClass: type(Mine)
     mine_params: MineParameters
     func_classification: Callable
+    threshold: int = 0.5
 
 
 @dataclass
@@ -79,7 +80,7 @@ class MineModel(Model):
             mine_scores[i] = mine.eval_sample(sample)
             labels[i] = mine.status
         # Getting class prediction from mine scores
-        prediction_label = self._model_params.func_classification(mine_scores, labels)
+        prediction_label = self._model_params.func_classification(mine_scores, labels, self._model_params.threshold)
         if return_summary:
             return ModelResult(prediction_label, mine_scores)
         return prediction_label
