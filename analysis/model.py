@@ -63,14 +63,10 @@ class CrossValResult:
     eval_params: List[ModelEvaluationParameters]
     eval_results: List[List[ModelEvaluationResult]]
     n_warnings: int
-    losses: List[List[np.ndarray]]
-    conf_ints: List[List[np.ndarray]]
 
     def __init__(self, cv_parameters: CrossValParameters):
         self.cv_params = cv_parameters
         self.eval_results = [[] for p in cv_parameters.model_params]
-        self.losses = []
-        self.conf_ints = []
         self.n_warnings = 0
 
     def add_result(self, eval_result: ModelEvaluationResult):
@@ -78,18 +74,36 @@ class CrossValResult:
         self.eval_results[eval_result.eval_idx].append(eval_result)
 
     @property
-    def predictions(self) -> List[np.ndarray]:
+    def predictions(self) -> List[List[np.ndarray]]:
         preds = []
         for res_mdl in self.eval_results:
-            preds.append(np.array([res_fld.predictions for res_fld in res_mdl]))
+            preds.append([res_fld.predictions for res_fld in res_mdl])
         return preds
 
     @property
-    def labels(self) -> List[np.ndarray]:
+    def labels(self) -> List[List[np.ndarray]]:
         lbls = []
         for res_mdl in self.eval_results:
-            lbls.append(np.array([res_fld.labels for res_fld in res_mdl]))
+            lbls.append([res_fld.labels for res_fld in res_mdl])
         return lbls
+
+    @property
+    def conf_ints(self) -> np.ndarray:
+        intervals = []
+        for i, (labels, predictions) in enumerate(zip(self.labels, self.predictions)):
+            # Computing confident interval of accuracy
+            labels_cat = np.concatenate(labels)
+            n_correct = (labels_cat == np.concatenate(predictions)).sum()
+            intervals.append(sm.stats.proportion_confint(n_correct, len(labels_cat), alpha=0.05, method='beta'))
+        return np.array(intervals)
+
+    @property
+    def losses(self) -> np.ndarray:
+        losses = []
+        for i, (labels, predictions) in enumerate(zip(self.labels, self.predictions)):
+            # Computing loss from true labels and predictions
+            losses.append(ModelAnalyser.compute_loss(self.cv_params.func_loss, labels, predictions))
+        return np.array(losses)
 
 
 ######################
@@ -132,17 +146,6 @@ class ModelAnalyser:
                 # Printing progress bar
                 progress_bar.add_bar('Cross-Validation', i, n_iter)
                 progress_bar.print(postfix=f'Warnings: {cv_result.n_warnings}')
-        # Iterating through predictions
-        for i, (labels, predictions) in enumerate(zip(cv_result.labels, cv_result.predictions)):
-            # Computing confident interval of accuracy
-            labels_cat = np.concatenate(labels)
-            n_correct = (labels_cat == np.concatenate(predictions)).sum()
-            confint = sm.stats.proportion_confint(n_correct, len(labels_cat), alpha=0.05, method='beta')
-            cv_result.conf_ints.append(confint)
-
-            # Computing loss from true labels and predictions
-            loss = ModelAnalyser._compute_loss(cv_params.func_loss, labels, predictions)
-            cv_result.losses.append(loss)
         return cv_result
 
     @staticmethod
@@ -275,7 +278,7 @@ class ModelAnalyser:
         return eval_result
 
     @staticmethod
-    def _compute_loss(func_loss: Callable, labels: Sequence[np.ndarray], predictions:Sequence[np.ndarray]) -> float or np.ndarray:
+    def compute_loss(func_loss: Callable, labels: Sequence[np.ndarray], predictions:Sequence[np.ndarray]) -> float or np.ndarray:
         """ Helper function to compute the mean loss for all folds. """
         # Iterating through all folds
         loss = []
