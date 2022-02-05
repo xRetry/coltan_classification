@@ -188,6 +188,13 @@ class Dataset:
             lbls.append(np.repeat(sample.label, len(sample.attributes)))
         return np.concatenate(lbls)
 
+    @property
+    def labels_mine(self) -> np.ndarray:
+        lbls = []
+        for sample in self._samples:
+            lbls.append(np.repeat(sample.mine_id, len(sample.attributes)))
+        return np.concatenate(lbls)
+
     def __len__(self) -> int:
         return len(self._samples)
 
