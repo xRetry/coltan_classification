@@ -23,7 +23,7 @@ def posterior(mean: np.ndarray, std: np.ndarray, kappa: int, nu: int, x: np.ndar
     return mean_p, std_p, kappa_p, nu_p
 
 
-@verification('a', 'a', '', '', 'a', 'a')
+@verification('a', 'a', '', '', 'a', 'a', None)
 def pdf(mean, std, kappa: int, nu: int, x_mean: np.ndarray, x_std: np.ndarray, func_aggr: Callable=np.product) -> float:
     """
         Evaluates the pdf of a NIX distribution for a given mean and std.
@@ -35,7 +35,7 @@ def pdf(mean, std, kappa: int, nu: int, x_mean: np.ndarray, x_std: np.ndarray, f
     return func_aggr(p)
 
 
-@verification('a', 'a', '', '', 'a')
+@verification('a', 'a', '', '', 'a', None)
 def pdf_predictive(mean: np.ndarray, std: np.ndarray, kappa: int, nu: int, x: np.ndarray, func_aggr: Callable=np.product) -> float:
     """
         Evaluates the predictive pdf of a NIX distribution for new data.
