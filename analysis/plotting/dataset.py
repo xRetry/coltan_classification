@@ -119,5 +119,14 @@ def plot_pca(pc1: np.ndarray, pc2: np.ndarray, labels):
     plt.show()
 
 
+def plot_lda(data, labels):
+    """
+    Plots the result of a Linear Discriminant Analysis.
+    """
+    plt.scatter(data[labels == 1].flatten(), np.zeros(np.sum(labels == 1)), c='g')
+    plt.scatter(data[labels == -1].flatten(), np.ones(np.sum(labels == -1)), c='r')
+    plt.show()
+
+
 if __name__ == '__main__':
     pass
