@@ -55,7 +55,9 @@ def _score_selection(eval_scores: np.ndarray, labels: np.ndarray, func_select: C
         return 1
     score_pos = func_select(scores_pos)
     score_neg = func_select(scores_neg)
-
+    score_sum = score_pos + score_neg
+    if score_sum == 0:
+        return np.nan  # TODO: Reconsider return value
     return 1 if score_pos / (score_pos + score_neg) > threshold else -1
 
 
