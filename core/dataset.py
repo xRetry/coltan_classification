@@ -33,7 +33,8 @@ class Dataset:
     _samples: np.ndarray
     _attr_labels: np.ndarray
 
-    def __init__(self, file:Optional[str]='\\data\\ctpa-data.csv', samples: Optional[Iterable[Sample]]=None, group_by_mine: bool=False):
+    def __init__(self, file: Optional[str]='\\data\\ctpa-data.csv',
+                 samples: Optional[Iterable[Sample]]=None, group_by_mine: bool=False):
         if file is not None:
             self._load_from_file(file)
         elif samples is not None:
@@ -72,7 +73,9 @@ class Dataset:
                 sample_id=sample_id,
                 mine_id=data_sample['mineID'].iloc[0]
             )
-            samples.append(sample)
+            # Disregard sample if at least one attribute has zeros standard deviation
+            if not np.any(np.std(sample.attributes, axis=0) == 0):
+                samples.append(sample)
         self._samples = np.array(samples)
 
     def _set_parameters(self, samples, attr_labels):
