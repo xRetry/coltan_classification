@@ -46,5 +46,16 @@ def test_2sample(mean1: np.ndarray, std1: np.ndarray, nobs1: np.ndarray,
     return func_aggr(attr_scores[1])
 
 
+@verification('a', 'a', 'a', 'a', None)
+def ztest_1sample(mean1: np.ndarray, nobs1: np.ndarray,
+                  mean2: np.ndarray, std2: np.ndarray, func_aggr: Callable=np.product) -> float:
+    """
+    Performs a 1 sample z-test.
+    """
+    z = (mean1 - mean2) / (std2 / np.sqrt(nobs1))
+    p_vals = (1 - scipy.stats.norm.cdf(np.abs(z))) * 2
+    return func_aggr(p_vals)
+
+
 if __name__ == '__main__':
     pass
