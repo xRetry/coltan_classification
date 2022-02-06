@@ -52,7 +52,7 @@ class EvalFuncAnalyser:
         plot.plot_eval_result(x1_grid, x2_grid, results)
 
     @staticmethod
-    def mine_shape(mine_params: MineParameters or List[MineParameters],
+    def mine_shape(mine_class: type(Mine), mine_params: MineParameters or List[MineParameters],
                    x1_range: Tuple[float, float]=(-1, 1),x2_range: Tuple[float, float]=(-1, 1),
                    std: float=1, n_train: int=3, n_sample: int=20, show_sample: bool=False):
         """
@@ -83,7 +83,7 @@ class EvalFuncAnalyser:
         for p_idx, params in enumerate(mine_params):
             print(f'{p_idx+1} / {len(mine_params)}')
             # Creating mine with eval function
-            mine = EvalFuncAnalyser._create_mine(params)
+            mine = EvalFuncAnalyser._create_mine(mine_class, params)
             # Adding training samples
             for sample in samples_train:
                 mine.add_sample(sample)
@@ -152,7 +152,7 @@ class EvalFuncAnalyser:
         """
         mine = MineClass(
             coordinates=np.zeros(3),
-            status=0,
+            label=0,
             mine_parameters=mine_params
         )
         return mine
