@@ -33,7 +33,7 @@ def plot_correlation_matrix(values: np.ndarray, labels: Optional[Iterable[str]] 
     plt.show()
 
 
-def plot_qq(attribute_values: np.ndarray, attr_idx:int=0):
+def plot_qq(attribute_values: np.ndarray, attr_idx: int=0):
     fig = plt.figure()
     ax = fig.add_subplot(111)
     # sm.graphics.qqplot(attribute_values[:, attr_idx])  # Proper Q-Q Plot
@@ -42,17 +42,18 @@ def plot_qq(attribute_values: np.ndarray, attr_idx:int=0):
     plt.show()
 
 
-def plot_norm_test(p_vals: np.ndarray):
+def plot_norm_test(p_vals: np.ndarray, title: str='Anderson-Darling Normality Test'):
     # Create attribute labels
-    attr_labels = [f'Attr {i+1}' for i in range(len(p_vals[0, :]))]
+    attr_labels = [f'{i+1}' for i in range(len(p_vals[0, :]))]
     # Plot p values
     plt.figure(figsize=(10, 10))
     sns.boxplot(data=p_vals, orient='h')
     # Modifying layout
     plt.yticks(list(range(len(p_vals[0, :]))), attr_labels)
-    plt.title('Anderson-Darling Normality Test')
-    plt.ylabel('Attribute')
+    plt.title(title)
+    plt.ylabel('Chemical Elements')
     plt.xlabel('P-Value')
+    plt.tight_layout()
     plt.show()
 
 
