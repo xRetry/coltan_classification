@@ -33,13 +33,13 @@ class Dataset:
     _samples: np.ndarray
     _attr_labels: np.ndarray
 
-    def __init__(self, file: Optional[str]='\\data\\ctpa-data.csv',
+    def __init__(self, file: str='\\data\\ctpa-data.csv',
                  samples: Optional[Iterable[Sample]]=None, group_by_mine: bool=False):
-        if file is not None:
-            self._load_from_file(file)
-        elif samples is not None:
+        if samples is not None:
             self._samples = np.array(samples)
             self._attr_labels = np.array([])
+        else:
+            self._load_from_file(file)
 
         if group_by_mine:
             self._samples = self._group_by_mine(self._samples)
