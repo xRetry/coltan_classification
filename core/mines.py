@@ -128,7 +128,7 @@ class AggregationMine(Mine):
         loc = self._estimator.to_loc(self._parameters.attributes)
         return non_parametric.test_norm1(loc, self._estimator.to_loc(x))
 
-    def eval_norm2(self, x: np.ndarray) -> float:
+    def eval_norm2(self, x: np.ndarray, **kwargs) -> float:
         loc = self._estimator.to_loc(self._parameters.attributes)
         return non_parametric.test_norm2(loc, self._estimator.to_loc(x))
 
