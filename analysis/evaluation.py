@@ -15,7 +15,7 @@ class EvalFuncAnalyser:
     def pure_shape(func_eval: Callable or Tuple[Callable, dict] or List[Callable or Tuple[Callable, dict]], x: np.ndarray=np.zeros(2),
                    x1_range:Tuple[float]=(-3, 3), x2_range:Tuple[float]=(-3, 3)):
         """
-        Shows the shape of the evaluation functions. Only works if the function takes single values.
+            Shows the shape of the evaluation functions. Only works if the function takes single values.
         """
         # Wrap in list if single function
         if not isinstance(func_eval, list):
@@ -52,65 +52,56 @@ class EvalFuncAnalyser:
         plot.plot_eval_result(x1_grid, x2_grid, results)
 
     @staticmethod
-    def mine_shape(mine_class: type(Mine), mine_params: MineParameters or List[MineParameters],
-                   x1_range: Tuple[float, float]=(-1, 1),x2_range: Tuple[float, float]=(-1, 1),
-                   std: float=1, n_train: int=3, n_sample: int=20, show_sample: bool=False):
+    def mine_shape(mine_class: type(Mine) or List[type(Mine)], mine_params: MineParameters or List[MineParameters],
+                   data_train: Dataset, x1_delta: float=1, x2_delta: float=1):
         """
-        Shows the shape of an evaluation functions used in mines. Samples are generated from a normal distribution.
+            Shows the shape of an evaluation functions used in mines. Samples are generated from a normal distribution.
         """
         # Wrap in list if single parameters
         if not isinstance(mine_params, list):
             mine_params = [mine_params]
-        # Creating training samples
-        samples_train = []
-        for i in range(n_train):
-            attr_train = np.array([
-                np.random.normal(loc=0, scale=std, size=n_sample),
-                np.random.normal(loc=0, scale=std, size=n_sample)
-            ])
-            samples_train.append(EvalFuncAnalyser._create_sample(attr_train.T))
-        # Creating test sample
+            mine_class = [mine_class]
+        # Computes the centers of each attribute
+        center = np.concatenate([attr for attr in data_train.attributes]).mean(axis=0)
+        # Creating artificial sample attributes
         attr_test = np.array([
-            np.random.normal(loc=0, scale=std, size=n_sample),
-            np.random.normal(loc=0, scale=std, size=n_sample)
+            np.array([-1, 0, 1]),
+            np.array([-1, 0, 1]),
         ])
-        # Creating offset mesh
-        x1_offset = np.linspace(*x1_range, 250)
-        x2_offset = np.linspace(*x2_range, 250)
+        # Creating meshgrid around centers
+        x1_offset = np.linspace(center[0]-x1_delta, center[0]+x1_delta, 100)
+        x2_offset = np.linspace(center[1]-x2_delta, center[1]+x2_delta, 100)
         x1_mesh, x2_mesh = np.meshgrid(x1_offset, x2_offset)
         # Iterating through evaluation functions
         result = {}
-        for p_idx, params in enumerate(mine_params):
+        for p_idx, (m_class, params) in enumerate(zip(mine_class, mine_params)):
             print(f'{p_idx+1} / {len(mine_params)}')
             # Creating mine with eval function
-            mine = EvalFuncAnalyser._create_mine(mine_class, params)
+            mine = EvalFuncAnalyser._create_mine(m_class, params)
             # Adding training samples
-            for sample in samples_train:
+            for sample in data_train:
                 mine.add_sample(sample)
             # Iterating through mesh
             y = np.zeros_like(x1_mesh)
             for i in range(x1_mesh.shape[0]):
                 for j in range(x1_mesh.shape[1]):
-                    # Shift x values by offset
+                    # Shifting attributes by offsets
                     attr_shifted = np.array([
                         attr_test[0] + x1_mesh[i, j],
-                        attr_test[1] + x2_mesh[i, j]
-                    ])
+                        attr_test[1] + x2_mesh[i, j],
+                    ]).T
                     # Creating and evaluating test sample
-                    sample_test = EvalFuncAnalyser._create_sample(attr_shifted.T)
+                    sample_test = EvalFuncAnalyser._create_sample(attr_shifted)
                     y[i, j] = mine.eval_sample(sample_test)
             # Saving result
             result[f'Mine {p_idx+1}'] = y
-        # Disable plotting of sample
-        if not show_sample:
-            attr_test = None
         # Plotting result
-        plot.plot_eval_result(x1_mesh, x2_mesh, result, sample_test=attr_test)
+        plot.plot_eval_result(x1_mesh, x2_mesh, result)
 
     @staticmethod
     def kwargs_loss(params: CrossValParameters, kwargs_vals: Dict[str, np.ndarray]):
         """
-        Computes the loss of a function with kwargs and plots the result
+            Computes the loss of a function with kwargs and plots the result
         """
         # Setting accuracy as loss function
         params.func_loss = loss.accuracy
@@ -148,7 +139,7 @@ class EvalFuncAnalyser:
     @staticmethod
     def _create_mine(MineClass: type(Mine), mine_params: MineParameters) -> Mine:
         """
-        Creates a mine from an evaluation function.
+            Creates a mine from an evaluation function.
         """
         mine = MineClass(
             coordinates=np.zeros(3),
@@ -160,7 +151,7 @@ class EvalFuncAnalyser:
     @staticmethod
     def _create_sample(attr_values: np.ndarray) -> Sample:
         """
-        Creates a sample with provided attribute values.
+            Creates a sample with provided attribute values.
         """
         sample = Sample(
             coordinates=np.zeros(3),
