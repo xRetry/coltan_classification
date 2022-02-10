@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from core.dataset import Sample
-from core.functions.evaluations import uni_normal, multi_normal, normal_inverse_wishart, non_parametric, normal_inverse_chisquared
+from core.functions.distributions import uni_normal, multi_normal, normal_inverse_wishart, non_parametric, normal_inverse_chisquared
 from core.estimators import Estimator, MeanUniEstimator
 from core.normalizers import Normalizer, NoNormalizer
 from core.utils import singular_check

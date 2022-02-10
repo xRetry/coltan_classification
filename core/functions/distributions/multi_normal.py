@@ -30,7 +30,7 @@ def posterior(mean: np.ndarray, cov:np.ndarray, x: np.ndarray, cov_known: np.nda
 @verification('a1', 'aa', 'a1', 'aa')
 def kl_divergence(mean1: np.ndarray, cov1: np.ndarray, mean2: np.ndarray, cov2: np.ndarray) -> float:
     """
-    Computes the KL-Divergence between two multivariate normal evaluations.
+    Computes the KL-Divergence between two multivariate normal distributions.
     """
     # Removing zeros in diagonal of covariance matrix
     is_not_zero = (np.diag(cov1) != 0) & (np.diag(cov2) != 0)
