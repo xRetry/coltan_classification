@@ -8,7 +8,7 @@ import statsmodels.api as sm
 
 from core.dataset import Dataset, Sample
 from core.models import ModelParameters, Model
-from core.mines import MineParameters
+from core.mines import MineParameters, BayesianUniMine, AggregationMine
 import analysis.plotting.model as plot
 from analysis.utils import console, logging
 
@@ -200,6 +200,7 @@ class ModelAnalyser:
         for k, v in kwargs.items():
             if not isinstance(v, list or tuple):
                 kwargs[k] = [v]
+        param_dicts = []
         # Fills up values to reach the length of the longest values
         if not all_combinations:
             # Find the longest value list
@@ -216,30 +217,7 @@ class ModelAnalyser:
                         param_dict[k] = v[i]
                     else:
                         param_dict[k] = v[0]
-                # Handle default values if no parameter provided
-                mine_kwargs = param_dict.get('mine_kwargs')
-                if mine_kwargs is None:
-                    mine_kwargs = dict()
-                eval_kwargs = param_dict.get('eval_kwargs')
-                if eval_kwargs is None:
-                    eval_kwargs = dict()
-                # Create Parameters and add to output
-                model_classes.append(param_dict['ModelClass'])
-                params.append(
-                    ModelParameters(
-                        MineClass=param_dict['MineClass'],
-                        func_classification=param_dict['func_classification'],
-                        threshold=param_dict['threshold'],
-                        mine_params=MineParameters(
-                            func_transform=param_dict['func_transform'],
-                            func_eval=param_dict['func_eval'],
-                            NormalizerClass=param_dict['NormalizerClass'],
-                            EstimatorClass=param_dict['EstimatorClass'],
-                            mine_kwargs=mine_kwargs,
-                            eval_kwargs=eval_kwargs
-                        )
-                    )
-                )
+                param_dicts.append(param_dict)
         # Creates the Cartesian product of all values
         else:
             # Creating kwargs tuples with of (arg_name, arg_value)
@@ -250,9 +228,37 @@ class ModelAnalyser:
                     tuples[-1].append((k, v))
             # Cartesian product of kwargs tuples
             combinations = list(itertools.product(*tuples))
-            # Creating Parameters from kwargs tuples
-            #params = [Parameters(**dict(c)) for c in combinations]
-            raise NotImplementedError
+            # Creating dicts from kwargs tuples
+            for c in combinations:
+                param_dicts.append(dict(c))
+
+        model_classes, params = [], []
+        for param_dict in param_dicts:
+            # Create Parameters and add to output
+            mine_kwargs = param_dict.get('mine_kwargs')
+            if mine_kwargs is None:
+                mine_kwargs = dict()
+            eval_kwargs = param_dict.get('eval_kwargs')
+            if eval_kwargs is None:
+                eval_kwargs = dict()
+
+            model_classes.append(param_dict['ModelClass'])
+            mine_class_name = param_dict['func_eval'].__str__().split(' ')[1].split('.')[0]
+            params.append(
+                ModelParameters(
+                    MineClass=globals()[mine_class_name],
+                    func_classification=param_dict['func_classification'],
+                    threshold=param_dict['threshold'],
+                    mine_params=MineParameters(
+                        func_transform=param_dict['func_transform'],
+                        func_eval=param_dict['func_eval'],
+                        NormalizerClass=param_dict['NormalizerClass'],
+                        EstimatorClass=param_dict['EstimatorClass'],
+                        mine_kwargs=mine_kwargs,
+                        eval_kwargs=eval_kwargs
+                    )
+                )
+            )
         return model_classes, params
 
     @staticmethod
